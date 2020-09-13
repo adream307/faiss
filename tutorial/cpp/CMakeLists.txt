@@ -18,3 +18,7 @@ target_link_libraries(4-GPU PRIVATE faiss)
 
 add_executable(5-Multiple-GPUs EXCLUDE_FROM_ALL 5-Multiple-GPUs.cpp)
 target_link_libraries(5-Multiple-GPUs PRIVATE faiss)
+
+################################ local expr ################################
+add_executable(exp3 EXCLUDE_FROM_ALL exp3.cpp)
+target_link_libraries(exp3 PRIVATE faiss)
