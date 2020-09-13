@@ -275,22 +275,25 @@ void OnDiskInvertedLists::prefetch_lists (const idx_t *list_nos, int n) const
 
 void OnDiskInvertedLists::do_mmap ()
 {
-    const char *rw_flags = read_only ? "r" : "r+";
-    int prot = read_only ? PROT_READ : PROT_WRITE | PROT_READ;
-    FILE *f = fopen (filename.c_str(), rw_flags);
-    FAISS_THROW_IF_NOT_FMT (f, "could not open %s in mode %s: %s",
-                            filename.c_str(), rw_flags, strerror(errno));
+    if(totsize == 0) {
+      ptr=nullptr;
+    }else {
+      const char *rw_flags = read_only ? "r" : "r+";
+      int prot = read_only ? PROT_READ : PROT_WRITE | PROT_READ;
+      FILE *f = fopen(filename.c_str(), rw_flags);
+      FAISS_THROW_IF_NOT_FMT (f, "could not open %s in mode %s: %s",
+                              filename.c_str(), rw_flags, strerror(errno));
 
-    uint8_t * ptro = (uint8_t*)mmap (nullptr, totsize,
-                          prot, MAP_SHARED, fileno (f), 0);
+      uint8_t *ptro = (uint8_t *) mmap(nullptr, totsize,
+                                       prot, MAP_SHARED, fileno(f), 0);
 
-    FAISS_THROW_IF_NOT_FMT (ptro != MAP_FAILED,
-                            "could not mmap %s: %s",
-                            filename.c_str(),
-                            strerror(errno));
-    ptr = ptro;
-    fclose (f);
-
+      FAISS_THROW_IF_NOT_FMT (ptro != MAP_FAILED,
+                              "could not mmap %s: %s",
+                              filename.c_str(),
+                              strerror(errno));
+      ptr = ptro;
+      fclose(f);
+    }
 }
 
 void OnDiskInvertedLists::update_totsize (size_t new_size)

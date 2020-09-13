@@ -33,7 +33,10 @@ int main() {
   faiss::write_index(&index, "/tmp/exp3.ivf");
   std::cout << "write index file success" << std::endl;
 
-  auto *readidx = faiss::read_index("/tmp/exp3.ivf", faiss::IO_FLAG_READ_ONLY);
+  auto *readidx = faiss::read_index("/tmp/exp3.ivf");
+  std::vector<uint8_t > code(index.code_size);
+  invlist.add_entry(0, 0, code.data());
+
   delete readidx;
   delete[] xb;
 
