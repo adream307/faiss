@@ -50,7 +50,7 @@ size_t MapInvertedLists::add_entries(size_t list_no, size_t n_entry, const idx_t
     it->second.ids.resize(o + n_entry);
     memcpy(&it->second.ids[o], ids, sizeof(idx_t) * n_entry);
     it->second.codes.resize((o + n_entry) * code_size);
-    memcpy(&it->second.codes[o], code, code_size * n_entry);
+    memcpy(&it->second.codes[o * code_size], code, code_size * n_entry);
     return o;
 }
 
