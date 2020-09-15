@@ -28,7 +28,7 @@ namespace faiss {
 
 IndexBinaryIVF::IndexBinaryIVF(IndexBinary *quantizer, size_t d, size_t nlist)
     : IndexBinary(d),
-      invlists(new ArrayInvertedLists(nlist, code_size)),
+      invlists(new MapInvertedLists(nlist, code_size)),
       own_invlists(true),
       nprobe(1),
       max_codes(0),
