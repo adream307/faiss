@@ -7,7 +7,9 @@
 
 // -*- c++ -*-
 
-#include <faiss/MapInvertedLists.h>
+#include <faiss/InvertedLists.h>
+#include <cassert>
+#include <cstring>
 
 namespace faiss {
 
