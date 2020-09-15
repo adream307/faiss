@@ -32,6 +32,7 @@ add_library(faiss
   IndexScalarQuantizer.cpp
   IndexShards.cpp
   InvertedLists.cpp
+  MapInvertedLists.cpp
   MatrixStats.cpp
   MetaIndexes.cpp
   VectorTransform.cpp
@@ -85,6 +86,7 @@ set(FAISS_HEADERS
   IndexScalarQuantizer.h
   IndexShards.h
   InvertedLists.h
+  MapInvertedLists.h
   MatrixStats.h
   MetaIndexes.h
   MetricType.h
