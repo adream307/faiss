@@ -133,61 +133,61 @@ size_t InvertedLists::compute_ntotal () const {
  * ArrayInvertedLists implementation
  ******************************************/
 
-ArrayInvertedLists::ArrayInvertedLists (size_t nlist, size_t code_size):
-    InvertedLists (nlist, code_size)
-{
-    ids.resize (nlist);
-    codes.resize (nlist);
-}
-
-size_t ArrayInvertedLists::add_entries (
-           size_t list_no, size_t n_entry,
-           const idx_t* ids_in, const uint8_t *code)
-{
-    if (n_entry == 0) return 0;
-    assert (list_no < nlist);
-    size_t o = ids [list_no].size();
-    ids [list_no].resize (o + n_entry);
-    memcpy (&ids[list_no][o], ids_in, sizeof (ids_in[0]) * n_entry);
-    codes [list_no].resize ((o + n_entry) * code_size);
-    memcpy (&codes[list_no][o * code_size], code, code_size * n_entry);
-    return o;
-}
-
-size_t ArrayInvertedLists::list_size(size_t list_no) const
-{
-    assert (list_no < nlist);
-    return ids[list_no].size();
-}
-
-const uint8_t * ArrayInvertedLists::get_codes (size_t list_no) const
-{
-    assert (list_no < nlist);
-    return codes[list_no].data();
-}
-
-
-const InvertedLists::idx_t * ArrayInvertedLists::get_ids (size_t list_no) const
-{
-    assert (list_no < nlist);
-    return ids[list_no].data();
-}
-
-void ArrayInvertedLists::resize (size_t list_no, size_t new_size)
-{
-    ids[list_no].resize (new_size);
-    codes[list_no].resize (new_size * code_size);
-}
-
-void ArrayInvertedLists::update_entries (
-      size_t list_no, size_t offset, size_t n_entry,
-      const idx_t *ids_in, const uint8_t *codes_in)
-{
-    assert (list_no < nlist);
-    assert (n_entry + offset <= ids[list_no].size());
-    memcpy (&ids[list_no][offset], ids_in, sizeof(ids_in[0]) * n_entry);
-    memcpy (&codes[list_no][offset * code_size], codes_in, code_size * n_entry);
-}
+//ArrayInvertedLists::ArrayInvertedLists (size_t nlist, size_t code_size):
+//    InvertedLists (nlist, code_size)
+//{
+//    ids.resize (nlist);
+//    codes.resize (nlist);
+//}
+//
+//size_t ArrayInvertedLists::add_entries (
+//           size_t list_no, size_t n_entry,
+//           const idx_t* ids_in, const uint8_t *code)
+//{
+//    if (n_entry == 0) return 0;
+//    assert (list_no < nlist);
+//    size_t o = ids [list_no].size();
+//    ids [list_no].resize (o + n_entry);
+//    memcpy (&ids[list_no][o], ids_in, sizeof (ids_in[0]) * n_entry);
+//    codes [list_no].resize ((o + n_entry) * code_size);
+//    memcpy (&codes[list_no][o * code_size], code, code_size * n_entry);
+//    return o;
+//}
+//
+//size_t ArrayInvertedLists::list_size(size_t list_no) const
+//{
+//    assert (list_no < nlist);
+//    return ids[list_no].size();
+//}
+//
+//const uint8_t * ArrayInvertedLists::get_codes (size_t list_no) const
+//{
+//    assert (list_no < nlist);
+//    return codes[list_no].data();
+//}
+//
+//
+//const InvertedLists::idx_t * ArrayInvertedLists::get_ids (size_t list_no) const
+//{
+//    assert (list_no < nlist);
+//    return ids[list_no].data();
+//}
+//
+//void ArrayInvertedLists::resize (size_t list_no, size_t new_size)
+//{
+//    ids[list_no].resize (new_size);
+//    codes[list_no].resize (new_size * code_size);
+//}
+//
+//void ArrayInvertedLists::update_entries (
+//      size_t list_no, size_t offset, size_t n_entry,
+//      const idx_t *ids_in, const uint8_t *codes_in)
+//{
+//    assert (list_no < nlist);
+//    assert (n_entry + offset <= ids[list_no].size());
+//    memcpy (&ids[list_no][offset], ids_in, sizeof(ids_in[0]) * n_entry);
+//    memcpy (&codes[list_no][offset * code_size], codes_in, code_size * n_entry);
+//}
 
 
 ArrayInvertedLists::~ArrayInvertedLists ()
