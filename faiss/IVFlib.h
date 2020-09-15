@@ -89,7 +89,7 @@ struct SlidingIndexWindow {
     Index * index;
 
     /// InvertedLists of index
-    ArrayInvertedLists *ils;
+    MapInvertedLists *ils;
 
     /// number of slices currently in index
     int n_slice;
