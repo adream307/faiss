@@ -295,7 +295,7 @@ void set_invlist_range (Index *index, long i0, long i1,
 
     FAISS_THROW_IF_NOT (0 <= i0 && i0 <= i1 && i1 <= ivf->nlist);
 
-    ArrayInvertedLists *dst = dynamic_cast<ArrayInvertedLists *>(ivf->invlists);
+    MapInvertedLists *dst = dynamic_cast<MapInvertedLists *>(ivf->invlists);
     FAISS_THROW_IF_NOT_MSG (dst, "only ArrayInvertedLists supported");
     FAISS_THROW_IF_NOT (src->nlist == i1 - i0 &&
                         dst->code_size == src->code_size);
@@ -304,8 +304,8 @@ void set_invlist_range (Index *index, long i0, long i1,
     for (long i = i0 ; i < i1; i++) {
         ntotal -= dst->list_size (i);
         ntotal += src->list_size (i - i0);
-        std::swap (src->codes[i - i0], dst->codes[i]);
-        std::swap (src->ids[i - i0], dst->ids[i]);
+        std::swap (src->codes[i - i0], dst->datas.at(i).codes);
+        std::swap (src->ids[i - i0], dst->datas.at(i).ids);
     }
     ivf->ntotal = index->ntotal = ntotal;
 }
