@@ -195,30 +195,28 @@ struct MapInvertedLists : InvertedLists {
 
 };
 
-typedef MapInvertedLists ArrayInvertedLists;
-
 /// simple (default) implementation as an array of inverted lists
-//struct ArrayInvertedLists : InvertedLists {
-//  std::vector<std::vector<uint8_t> > codes; // binary codes, size nlist
-//  std::vector<std::vector<idx_t> > ids;  ///< Inverted lists for indexes
-//
-//  ArrayInvertedLists(size_t nlist, size_t code_size);
-//
-//  size_t list_size(size_t list_no) const override;
-//  const uint8_t *get_codes(size_t list_no) const override;
-//  const idx_t *get_ids(size_t list_no) const override;
-//
-//  size_t add_entries(
-//      size_t list_no, size_t n_entry,
-//      const idx_t *ids, const uint8_t *code) override;
-//
-//  void update_entries(size_t list_no, size_t offset, size_t n_entry,
-//                      const idx_t *ids, const uint8_t *code) override;
-//
-//  void resize(size_t list_no, size_t new_size) override;
-//
-//  virtual ~ArrayInvertedLists();
-//};
+struct ArrayInvertedLists : InvertedLists {
+  std::vector<std::vector<uint8_t> > codes; // binary codes, size nlist
+  std::vector<std::vector<idx_t> > ids;  ///< Inverted lists for indexes
+
+  ArrayInvertedLists(size_t nlist, size_t code_size);
+
+  size_t list_size(size_t list_no) const override;
+  const uint8_t *get_codes(size_t list_no) const override;
+  const idx_t *get_ids(size_t list_no) const override;
+
+  size_t add_entries(
+      size_t list_no, size_t n_entry,
+      const idx_t *ids, const uint8_t *code) override;
+
+  void update_entries(size_t list_no, size_t offset, size_t n_entry,
+                      const idx_t *ids, const uint8_t *code) override;
+
+  void resize(size_t list_no, size_t new_size) override;
+
+  virtual ~ArrayInvertedLists();
+};
 
 /*****************************************************************
  * Meta-inverted lists
