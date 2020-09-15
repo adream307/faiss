@@ -191,6 +191,7 @@ struct MapInvertedLists : InvertedLists {
 
   size_t add_entries(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
   void update_entries(size_t list_no, size_t offset, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
+  void resize(size_t list_no, size_t new_size) override;
 
 };
 

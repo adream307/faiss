@@ -188,10 +188,10 @@ size_t InvertedLists::compute_ntotal () const {
 //    memcpy (&ids[list_no][offset], ids_in, sizeof(ids_in[0]) * n_entry);
 //    memcpy (&codes[list_no][offset * code_size], codes_in, code_size * n_entry);
 //}
-
-
-ArrayInvertedLists::~ArrayInvertedLists ()
-{}
+//
+//
+//ArrayInvertedLists::~ArrayInvertedLists ()
+//{}
 
 /*****************************************************************
  * Meta-inverted list implementations

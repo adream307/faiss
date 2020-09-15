@@ -67,4 +67,11 @@ void MapInvertedLists::update_entries(size_t list_no,
 
 }
 
+void MapInvertedLists::resize(size_t list_no, size_t new_size) {
+    assert (list_no < nlist);
+    auto it = datas.find(list_no);
+    it->second.ids.resize(new_size);
+    it->second.codes.resize(code_size * new_size);
+}
+
 }//namespace faiss
