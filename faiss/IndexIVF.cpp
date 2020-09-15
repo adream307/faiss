@@ -154,7 +154,7 @@ IndexIVF::IndexIVF (Index * quantizer, size_t d,
                     MetricType metric):
     Index (d, metric),
     Level1Quantizer (quantizer, nlist),
-    invlists (new ArrayInvertedLists (nlist, code_size)),
+    invlists (new MapInvertedLists (nlist, code_size)),
     own_invlists (true),
     code_size (code_size),
     nprobe (1),
