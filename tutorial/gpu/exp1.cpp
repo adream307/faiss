@@ -38,6 +38,7 @@ int main() {
 
     assert(!index_ivf.is_trained);
     index_ivf.train(nb, xb);
+    index_ivf.add(nb, xb);
 
     printf("is_trained = %s\n", index_ivf.is_trained ? "true" : "false");
     printf("ntotal = %ld\n", index_ivf.ntotal);
