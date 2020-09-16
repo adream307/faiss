@@ -38,6 +38,7 @@ endif()
 
 add_subdirectory(demos)
 add_subdirectory(tutorial/cpp)
+add_subdirectory(tutorial/gpu)
 
 if(BUILD_TESTING)
   # CTest must be included in the top level to enable `make test` target.
