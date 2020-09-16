@@ -1,7 +1,9 @@
 #include <random>
 #include <cassert>
+#include <iostream>
 #include <faiss/gpu/GpuIndexIVFFlat.h>
 #include <faiss/gpu/StandardGpuResources.h>
+#include <faiss/index_io.h>
 
 int main() {
     int d = 64;                            // dimension
@@ -62,6 +64,9 @@ int main() {
         delete [] I;
         delete [] D;
     }
+
+    faiss::write_index(&index_ivf, "/tmp/index.ivf");
+    std::cout << "write index file success" << std::endl;
 
 
     delete [] xb;
