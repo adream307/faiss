@@ -7,4 +7,4 @@
 find_package(CUDAToolkit REQUIRED)
 
 add_executable(exp1 EXCLUDE_FROM_ALL exp1.cpp)
-target_link_libraries(exp1 PUBLIC faiss)
+target_link_libraries(exp1 PUBLIC faiss CUDA::cudart)
