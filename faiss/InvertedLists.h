@@ -321,6 +321,7 @@ struct MaskedInvertedLists : ReadOnlyInvertedLists {
   void prefetch_lists(const idx_t *list_nos, int nlist) const override;
 
 };
+/////////////////////////////////////////////////////////////////////////////////////
 
 class Status {
  public:
@@ -359,8 +360,53 @@ struct KVEntry {
 typedef std::function<Status(const KVEntry &)> KVPutF;
 typedef std::function<Status(KVEntry &)> KVGetF;
 
-struct KVInvertedLists : InvertedLists {
-  KVInvertedLists(size_t nlist, size_t code_size);
+/************************************
+ *  size :  size of verotr
+ *  data : data of vector
+ ************************************/
+template<typename T>
+typename std::enable_if<(std::is_integral<T>::value || std::is_floating_point<T>::value)
+                            && !std::is_same<T, bool>::value, Status>::type
+WriteVector(const T *d, const size_t size, KVPutF f) {
+  auto s = f(KVEntry("size", &size, sizeof(size)));
+  if (!s.ok()) return s;
+
+  return f(KVEntry("data", d, sizeof(T) * size));
+}
+
+template<typename T>
+typename std::enable_if<(std::is_integral<T>::value || std::is_floating_point<T>::value)
+                            && !std::is_same<T, bool>::value, Status>::type
+ReadFromKVStore(std::string k, T &v, const KVGetF &f) {
+  KVEntry e;
+  e.key = std::move(k);
+  auto s = f(e);
+  if (!s.ok()) return s;
+  if (e.size != sizeof(T)) return Status{Status::UnExpected};
+  memcpy(&v, e.value, e.size);
+  return Status{Status::OK};
+}
+
+template<typename T>
+typename std::enable_if<(std::is_integral<T>::value || std::is_floating_point<T>::value)
+                            && !std::is_same<T, bool>::value, Status>::type
+ReadVector(const T *&d, size_t &size, KVGetF f) {
+  auto s = ReadFromKVStore("size", size, f);
+  if (!s.ok()) return s;
+
+  KVEntry e("data");
+  s = f(e);
+  if (!s.ok()) return s;
+  if (e.size % sizeof(T) != 0) return Status{Status::UnExpected};
+  d = reinterpret_cast<const T *>(e.value);
+  return Status{Status::OK};
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+class KVInvertedLists : InvertedLists {
+ public:
+  KVInvertedLists(size_t nlist, size_t code_size,KVPutF p, KVGetF g);
   virtual ~KVInvertedLists() noexcept = default;
 
   size_t list_size(size_t list_no) const override;
@@ -370,6 +416,14 @@ struct KVInvertedLists : InvertedLists {
   size_t add_entries(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
   void update_entries(size_t list_no, size_t offset, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
   void resize(size_t list_no, size_t new_size) override;
+ private:
+  virtual Status get_ids(size_t list_no, const faiss::Index::idx_t* &ids, size_t &list_size) const;
+  virtual Status get_codes(size_t list_no, const uint8_t* &codes, size_t &codes_size) const;
+  virtual Status put_ids(size_t list_no, const faiss::Index::idx_t* ids, size_t list_size);
+  virtual Status put_codes(size_t list_no, const uint8_t* codes, size_t codes_size);
+ private:
+  KVPutF put;
+  KVGetF get;
 };
 
 
