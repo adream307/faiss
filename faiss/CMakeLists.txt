@@ -56,7 +56,7 @@ add_library(faiss
   utils/hamming.cpp
   utils/random.cpp
   utils/utils.cpp
-)
+        KVInvertedLists.cpp)
 
 set(FAISS_HEADERS
   AutoTune.h

@@ -18,6 +18,8 @@
 #include <vector>
 #include <map>
 #include <faiss/Index.h>
+#include <functional>
+#include <cstring>
 
 namespace faiss {
 
@@ -144,11 +146,11 @@ struct InvertedLists {
     const idx_t *get() { return ids; }
 
     idx_t operator[](size_t i) const {
-        return ids[i];
+      return ids[i];
     }
 
     ~ScopedIds() {
-        il->release_ids(list_no, ids);
+      il->release_ids(list_no, ids);
     }
   };
 
@@ -167,7 +169,7 @@ struct InvertedLists {
     const uint8_t *get() { return codes; }
 
     ~ScopedCodes() {
-        il->release_codes(list_no, codes);
+      il->release_codes(list_no, codes);
     }
   };
 
@@ -319,6 +321,57 @@ struct MaskedInvertedLists : ReadOnlyInvertedLists {
   void prefetch_lists(const idx_t *list_nos, int nlist) const override;
 
 };
+
+class Status {
+ public:
+  enum ErrCode : int {
+    OK = 0,
+    UnSupported,
+    UnExpected
+  };
+
+  ErrCode Code() const { return code_; }
+
+  explicit Status(ErrCode c = OK) : code_(c) {}
+  bool ok() { return code_ == OK; }
+
+ private:
+  ErrCode code_ = OK;
+
+};
+
+struct KVEntry {
+  mutable std::string key;
+  const void *value;
+  size_t size;
+
+  KVEntry() {}
+  KVEntry(std::string k) : key(std::move(k)) {}
+  KVEntry(std::string k, const void *v, size_t s) : key(std::move(k)), value(v), size(s) {}
+  KVEntry(const char *k, const char *v) : key(std::string(k)), value(v), size(strlen(v)) {}
+
+  const std::string &AddKeyPrefix(const std::string &prefix) const {
+    key = prefix + key;
+    return key;
+  }
+};
+
+typedef std::function<Status(const KVEntry &)> KVPutF;
+typedef std::function<Status(KVEntry &)> KVGetF;
+
+struct KVInvertedLists : InvertedLists {
+  KVInvertedLists(size_t nlist, size_t code_size);
+  virtual ~KVInvertedLists() noexcept = default;
+
+  size_t list_size(size_t list_no) const override;
+  const uint8_t *get_codes(size_t list_no) const override;
+  const idx_t *get_ids(size_t list_no) const override;
+
+  size_t add_entries(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
+  void update_entries(size_t list_no, size_t offset, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
+  void resize(size_t list_no, size_t new_size) override;
+};
+
 
 struct MapInvertedLists : InvertedLists {
   struct Entry {
