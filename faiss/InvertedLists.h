@@ -418,16 +418,14 @@ class KVInvertedLists : public InvertedLists {
  protected:
   virtual Status get_ids(size_t list_no, const faiss::Index::idx_t *&ids, size_t &list_size) const;
   virtual Status get_codes(size_t list_no, const uint8_t *&codes, size_t &codes_size) const;
-  virtual Status put_ids(size_t list_no);
-  virtual Status put_codes(size_t list_no);
+  virtual Status put_ids(size_t list_no, std::vector<uint8_t> &data_buffer);
+  virtual Status put_codes(size_t list_no, std::vector<uint8_t> &data_buffer);
   std::pair<KeyType, size_t> parse_key(const std::string &key);
 
  protected:
   static constexpr auto idx_t_size = sizeof(faiss::Index::idx_t);
   KVPutF put;
   KVGetF get;
- private:
-  std::vector<std::vector<uint8_t>> list_buffer;
 };
 
 struct MapInvertedLists : public KVInvertedLists {
@@ -447,8 +445,8 @@ struct MapInvertedLists : public KVInvertedLists {
 //  const idx_t *get_ids(size_t list_no) const override;
 
 //  size_t add_entries(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
-  void update_entries(size_t list_no, size_t offset, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
-  void resize(size_t list_no, size_t new_size) override;
+//  void update_entries(size_t list_no, size_t offset, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
+//  void resize(size_t list_no, size_t new_size) override;
 
 };
 

@@ -96,25 +96,24 @@ MapInvertedLists::MapInvertedLists(size_t nlist, size_t code_size) :
 //  return o;
 //}
 
-void MapInvertedLists::update_entries(size_t list_no,
-                                      size_t offset,
-                                      size_t n_entry,
-                                      const InvertedLists::idx_t *ids,
-                                      const uint8_t *code) {
-  assert (list_no < nlist);
-  auto it = datas.find(list_no);
-  assert(n_entry + offset <= it->second.ids.size());
-  memcpy(&it->second.ids[offset], ids, sizeof(idx_t) * n_entry);
-  memcpy(&it->second.codes[offset * code_size], code, code_size * n_entry);
+//void MapInvertedLists::update_entries(size_t list_no,
+//                                      size_t offset,
+//                                      size_t n_entry,
+//                                      const InvertedLists::idx_t *ids,
+//                                      const uint8_t *code) {
+//  assert (list_no < nlist);
+//  auto it = datas.find(list_no);
+//  assert(n_entry + offset <= it->second.ids.size());
+//  memcpy(&it->second.ids[offset], ids, sizeof(idx_t) * n_entry);
+//  memcpy(&it->second.codes[offset * code_size], code, code_size * n_entry);
+//}
 
-}
-
-void MapInvertedLists::resize(size_t list_no, size_t new_size) {
-  assert (list_no < nlist);
-  auto it = datas.find(list_no);
-  it->second.ids.resize(new_size);
-  it->second.codes.resize(code_size * new_size);
-}
+//void MapInvertedLists::resize(size_t list_no, size_t new_size) {
+//  assert (list_no < nlist);
+//  auto it = datas.find(list_no);
+//  it->second.ids.resize(new_size);
+//  it->second.codes.resize(code_size * new_size);
+//}
 
 
 }//namespace faiss
