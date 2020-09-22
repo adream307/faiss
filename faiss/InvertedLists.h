@@ -404,7 +404,7 @@ ReadVector(const T *&d, size_t &size, KVGetF f) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class KVInvertedLists : InvertedLists {
+class KVInvertedLists : public InvertedLists {
  public:
   KVInvertedLists(size_t nlist, size_t code_size,KVPutF p, KVGetF g);
   virtual ~KVInvertedLists() noexcept = default;
@@ -416,21 +416,24 @@ class KVInvertedLists : InvertedLists {
   size_t add_entries(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
   void update_entries(size_t list_no, size_t offset, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
   void resize(size_t list_no, size_t new_size) override;
- private:
+ protected:
   virtual Status get_ids(size_t list_no, const faiss::Index::idx_t* &ids, size_t &list_size) const;
   virtual Status get_codes(size_t list_no, const uint8_t* &codes, size_t &codes_size) const;
   virtual Status put_ids(size_t list_no, const faiss::Index::idx_t* ids, size_t list_size);
   virtual Status put_codes(size_t list_no, const uint8_t* codes, size_t codes_size);
- private:
+  bool is_ids_key(const std::string &key);
+  bool is_codes_key(const std::string &key);
+  size_t parse_list_no(const std::string &key);
+ protected:
   KVPutF put;
   KVGetF get;
 };
 
 
-struct MapInvertedLists : InvertedLists {
+struct MapInvertedLists :public KVInvertedLists {
   struct Entry {
     size_t list_no;
-    std::vector<idx_t> ids;
+    std::vector<faiss::Index::idx_t> ids;
     std::vector<uint8_t> codes;
   };
 
@@ -438,14 +441,6 @@ struct MapInvertedLists : InvertedLists {
 
   MapInvertedLists(size_t nlist, size_t code_size);
   virtual ~MapInvertedLists() noexcept = default;
-
-  size_t list_size(size_t list_no) const override;
-  const uint8_t *get_codes(size_t list_no) const override;
-  const idx_t *get_ids(size_t list_no) const override;
-
-  size_t add_entries(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
-  void update_entries(size_t list_no, size_t offset, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
-  void resize(size_t list_no, size_t new_size) override;
 
 };
 
