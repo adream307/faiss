@@ -407,6 +407,10 @@ class KVInvertedLists : public InvertedLists {
  public:
   KVInvertedLists(size_t nlist, size_t code_size, KVPutF p, KVGetF g);
   virtual ~KVInvertedLists() noexcept = default;
+  KVInvertedLists(const KVInvertedLists &) = delete;
+  KVInvertedLists(KVInvertedLists &&) = delete;
+  KVInvertedLists &operator=(const KVInvertedLists &) = delete;
+  KVInvertedLists &operator=(KVInvertedLists &&) = delete;
 
   size_t list_size(size_t list_no) const override;
   const uint8_t *get_codes(size_t list_no) const override;
@@ -438,7 +442,10 @@ struct MapInvertedLists : public KVInvertedLists {
   std::map<size_t, Entry> datas;
 
   MapInvertedLists(size_t nlist, size_t code_size);
+  MapInvertedLists(const MapInvertedLists &ivl);
+  MapInvertedLists(MapInvertedLists &&ivl);
   virtual ~MapInvertedLists() noexcept = default;
+  void InitKV();
 
 //  size_t list_size(size_t list_no) const override;
 //  const uint8_t *get_codes(size_t list_no) const override;

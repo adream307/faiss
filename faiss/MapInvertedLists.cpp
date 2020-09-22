@@ -20,6 +20,22 @@ MapInvertedLists::MapInvertedLists(size_t nlist, size_t code_size) :
     en.list_no = i;
     datas[i] = en;
   }
+  InitKV();
+}
+
+MapInvertedLists::MapInvertedLists(const MapInvertedLists &ivl) :
+    KVInvertedLists(ivl.nlist, ivl.code_size, nullptr, nullptr) {
+  datas = ivl.datas;
+  InitKV();
+}
+
+MapInvertedLists::MapInvertedLists(MapInvertedLists &&ivl) :
+    KVInvertedLists(ivl.nlist, ivl.code_size, nullptr, nullptr) {
+  datas = std::move(ivl.datas);
+  InitKV();
+}
+
+void MapInvertedLists::InitKV() {
   get = [this](KVEntry &en) {
     auto key_info = parse_key(en.key);
     auto it = datas.find(key_info.second);
