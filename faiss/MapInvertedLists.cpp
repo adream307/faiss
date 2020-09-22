@@ -82,19 +82,19 @@ MapInvertedLists::MapInvertedLists(size_t nlist, size_t code_size) :
 //  return it->second.ids.data();
 //}
 
-size_t MapInvertedLists::add_entries(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *code) {
-  if (n_entry == 0) {
-    return 0;
-  }
-  assert (list_no < nlist);
-  auto it = datas.find(list_no);
-  size_t o = it->second.ids.size();
-  it->second.ids.resize(o + n_entry);
-  memcpy(&it->second.ids[o], ids, sizeof(idx_t) * n_entry);
-  it->second.codes.resize((o + n_entry) * code_size);
-  memcpy(&it->second.codes[o * code_size], code, code_size * n_entry);
-  return o;
-}
+//size_t MapInvertedLists::add_entries(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *code) {
+//  if (n_entry == 0) {
+//    return 0;
+//  }
+//  assert (list_no < nlist);
+//  auto it = datas.find(list_no);
+//  size_t o = it->second.ids.size();
+//  it->second.ids.resize(o + n_entry);
+//  memcpy(&it->second.ids[o], ids, sizeof(idx_t) * n_entry);
+//  it->second.codes.resize((o + n_entry) * code_size);
+//  memcpy(&it->second.codes[o * code_size], code, code_size * n_entry);
+//  return o;
+//}
 
 void MapInvertedLists::update_entries(size_t list_no,
                                       size_t offset,
