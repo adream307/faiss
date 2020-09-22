@@ -63,16 +63,16 @@ size_t KVInvertedLists::add_entries(size_t list_no,
   assert(s.ok());
   assert(codes_size_o == (list_size_o * code_size));
 
-  std::vector<faiss::Index::idx_t> ids_v(n_entry + list_size_o);
-  memcpy(ids_v.data(), ids_o, sizeof(faiss::Index::idx_t) * list_size_o);
-  memcpy(&ids_v[list_size_o], ids, sizeof(faiss::Index::idx_t) * n_entry);
-  s = put_ids(list_no, ids_v.data(), ids_v.size());
+  data_buffer.resize((n_entry + list_size_o) * idx_t_size);
+  memcpy(data_buffer.data(), ids_o, idx_t_size * list_size_o);
+  memcpy(&data_buffer[list_size_o * idx_t_size], ids, idx_t_size * n_entry);
+  s = put_ids(list_no);
   assert(s.ok());
 
-  std::vector<uint8_t> codes_v((n_entry + list_size_o) * code_size);
-  memcpy(codes_v.data(), codes_o, codes_size_o);
-  memcpy(&codes_v[codes_size_o], code, code_size * n_entry);
-  s = put_codes(list_no, codes_v.data(), codes_v.size());
+  data_buffer.resize((n_entry + list_size_o) * code_size);
+  memcpy(data_buffer.data(), codes_o, codes_size_o);
+  memcpy(&data_buffer[codes_size_o], code, code_size * n_entry);
+  s = put_codes(list_no);
   assert(s.ok());
   return list_size_o;
 }
@@ -96,22 +96,22 @@ void KVInvertedLists::update_entries(size_t list_no,
   assert(s.ok());
   assert(codes_size_o == (list_size_o * code_size));
 
-  std::vector<faiss::Index::idx_t> ids_v(list_size_o);
-  memcpy(ids_v.data(), ids_o, sizeof(faiss::Index::idx_t) * offset);
-  memcpy(&ids_v[offset], ids, sizeof(faiss::Index::idx_t) * n_entry);
-  memcpy(&ids_v[offset + n_entry],
+  data_buffer.resize(list_size_o * idx_t_size);
+  memcpy(data_buffer.data(), ids_o, idx_t_size * offset);
+  memcpy(&data_buffer[idx_t_size * offset], ids, idx_t_size * n_entry);
+  memcpy(&data_buffer[idx_t_size * (offset + n_entry)],
          ids_o + offset + n_entry,
-         sizeof(faiss::Index::idx_t) * (list_size_o - offset - n_entry));
-  s = put_ids(list_no, ids_v.data(), ids_v.size());
+         idx_t_size * (list_size_o - offset - n_entry));
+  s = put_ids(list_no);
   assert(s.ok());
 
-  std::vector<uint8_t> codes_v(codes_size_o);
-  memcpy(codes_v.data(), codes_o, code_size * offset);
-  memcpy(&codes_v[offset * code_size], code, code_size * n_entry);
-  memcpy(&codes_v[code_size * (offset + n_entry)],
+  data_buffer.resize(codes_size_o);
+  memcpy(data_buffer.data(), codes_o, code_size * offset);
+  memcpy(&data_buffer[offset * code_size], code, code_size * n_entry);
+  memcpy(&data_buffer[code_size * (offset + n_entry)],
          codes_o + (code_size * (offset + n_entry)),
          code_size * (list_size_o - offset - n_entry));
-  s = put_codes(list_no, codes_v.data(), codes_v.size());
+  s = put_codes(list_no);
   assert(s.ok());
 }
 
@@ -131,13 +131,13 @@ void KVInvertedLists::resize(size_t list_no, size_t new_size) {
   size_t min_size = list_size_o;
   if (new_size < min_size) min_size = new_size;
 
-  std::vector<faiss::Index::idx_t> ids_v(new_size);
-  memcpy(ids_v.data(), ids_o, sizeof(faiss::Index::idx_t) * min_size);
-  s = put_ids(list_no, ids_v.data(), ids_v.size());
+  data_buffer.resize(idx_t_size * new_size);
+  memcpy(data_buffer.data(), ids_o, idx_t_size * min_size);
+  s = put_ids(list_no);
   assert(s.ok());
-  std::vector<uint8_t> codes_v(new_size * code_size);
-  memcpy(codes_v.data(), codes_o, code_size * min_size);
-  s = put_codes(list_no, codes_v.data(), codes_v.size());
+  data_buffer.resize(new_size * code_size);
+  memcpy(data_buffer.data(), codes_o, code_size * min_size);
+  s = put_codes(list_no);
 }
 
 Status KVInvertedLists::get_ids(size_t list_no, const faiss::Index::idx_t *&ids, size_t &list_size) const {
@@ -146,11 +146,11 @@ Status KVInvertedLists::get_ids(size_t list_no, const faiss::Index::idx_t *&ids,
 Status KVInvertedLists::get_codes(size_t list_no, const uint8_t *&codes, size_t &codes_size) const {
   return ReadFromKVStore("list-" + std::to_string(list_no) + "/codes", codes, codes_size, get);
 }
-Status KVInvertedLists::put_ids(size_t list_no, const faiss::Index::idx_t *ids, size_t list_size) {
-  return WriteToKVStore("list-" + std::to_string(list_no) + "/ids", ids, list_size, put);
+Status KVInvertedLists::put_ids(size_t list_no) {
+  return WriteToKVStore("list-" + std::to_string(list_no) + "/ids", data_buffer.data(), data_buffer.size(), put);
 }
-Status KVInvertedLists::put_codes(size_t list_no, const uint8_t *codes, size_t codes_size) {
-  return WriteToKVStore("list-" + std::to_string(list_no) + "/codes", codes, codes_size, put);
+Status KVInvertedLists::put_codes(size_t list_no) {
+  return WriteToKVStore("list-" + std::to_string(list_no) + "/codes", data_buffer.data(), data_buffer.size(), put);
 }
 
 std::pair<KVInvertedLists::KeyType, size_t> KVInvertedLists::parse_key(const std::string &key) {

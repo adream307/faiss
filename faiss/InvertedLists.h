@@ -418,12 +418,14 @@ class KVInvertedLists : public InvertedLists {
  protected:
   virtual Status get_ids(size_t list_no, const faiss::Index::idx_t *&ids, size_t &list_size) const;
   virtual Status get_codes(size_t list_no, const uint8_t *&codes, size_t &codes_size) const;
-  virtual Status put_ids(size_t list_no, const faiss::Index::idx_t *ids, size_t list_size);
-  virtual Status put_codes(size_t list_no, const uint8_t *codes, size_t codes_size);
+  virtual Status put_ids(size_t list_no);
+  virtual Status put_codes(size_t list_no);
   std::pair<KeyType, size_t> parse_key(const std::string &key);
  protected:
+  static constexpr auto idx_t_size = sizeof(faiss::Index::idx_t);
   KVPutF put;
   KVGetF get;
+  std::vector<uint8_t> data_buffer;
 };
 
 struct MapInvertedLists : public KVInvertedLists {
