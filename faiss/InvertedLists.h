@@ -406,7 +406,7 @@ ReadVector(const T *&d, size_t &size, KVGetF f) {
 
 class KVInvertedLists : public InvertedLists {
  public:
-  KVInvertedLists(size_t nlist, size_t code_size,KVPutF p, KVGetF g);
+  KVInvertedLists(size_t nlist, size_t code_size, KVPutF p, KVGetF g);
   virtual ~KVInvertedLists() noexcept = default;
 
   size_t list_size(size_t list_no) const override;
@@ -417,10 +417,10 @@ class KVInvertedLists : public InvertedLists {
   void update_entries(size_t list_no, size_t offset, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
   void resize(size_t list_no, size_t new_size) override;
  protected:
-  virtual Status get_ids(size_t list_no, const faiss::Index::idx_t* &ids, size_t &list_size) const;
-  virtual Status get_codes(size_t list_no, const uint8_t* &codes, size_t &codes_size) const;
-  virtual Status put_ids(size_t list_no, const faiss::Index::idx_t* ids, size_t list_size);
-  virtual Status put_codes(size_t list_no, const uint8_t* codes, size_t codes_size);
+  virtual Status get_ids(size_t list_no, const faiss::Index::idx_t *&ids, size_t &list_size) const;
+  virtual Status get_codes(size_t list_no, const uint8_t *&codes, size_t &codes_size) const;
+  virtual Status put_ids(size_t list_no, const faiss::Index::idx_t *ids, size_t list_size);
+  virtual Status put_codes(size_t list_no, const uint8_t *codes, size_t codes_size);
   bool is_ids_key(const std::string &key);
   bool is_codes_key(const std::string &key);
   size_t parse_list_no(const std::string &key);
@@ -429,8 +429,7 @@ class KVInvertedLists : public InvertedLists {
   KVGetF get;
 };
 
-
-struct MapInvertedLists :public KVInvertedLists {
+struct MapInvertedLists : public KVInvertedLists {
   struct Entry {
     size_t list_no;
     std::vector<faiss::Index::idx_t> ids;
