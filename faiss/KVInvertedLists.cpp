@@ -65,7 +65,7 @@ size_t KVInvertedLists::add_entries(size_t list_no,
 
   std::vector<faiss::Index::idx_t> ids_v(n_entry + list_size_o);
   memcpy(ids_v.data(), ids_o, sizeof(faiss::Index::idx_t) * list_size_o);
-  memcpy(&ids_v[0], ids, sizeof(faiss::Index::idx_t) * n_entry);
+  memcpy(&ids_v[list_size_o], ids, sizeof(faiss::Index::idx_t) * n_entry);
   s = put_ids(list_no, ids_v.data(), ids_v.size());
   assert(s.ok());
 
