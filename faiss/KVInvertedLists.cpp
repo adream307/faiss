@@ -138,29 +138,40 @@ void KVInvertedLists::resize(size_t list_no, size_t new_size) {
 }
 
 Status KVInvertedLists::get_ids(size_t list_no, const faiss::Index::idx_t *&ids, size_t &list_size) const {
-  return ReadVector(ids, list_size, [this, list_no](KVEntry &en) {
-    en.AddKeyPrefix("list-" + std::to_string(list_no) + "/ids");
-    return this->get(en);
-  });
+  return ReadFromKVStore("list-" + std::to_string(list_no) + "/ids", ids, list_size, get);
 }
 Status KVInvertedLists::get_codes(size_t list_no, const uint8_t *&codes, size_t &codes_size) const {
-  return ReadVector(codes, codes_size, [this, list_no](KVEntry &en) {
-    en.AddKeyPrefix("list-" + std::to_string(list_no) + "/codes");
-    return this->get(en);
-  });
+  return ReadFromKVStore("list-" + std::to_string(list_no) + "/codes", codes, codes_size, get);
 }
 Status KVInvertedLists::put_ids(size_t list_no, const faiss::Index::idx_t *ids, size_t list_size) {
-  return WriteVector(ids, list_size, [this, list_no](const KVEntry &en) {
-    en.AddKeyPrefix("list-" + std::to_string(list_no) + "/ids");
-    return this->put(en);
-  });
+  return WriteToKVStore("list-" + std::to_string(list_no) + "/ids", ids, list_size, put);
 }
 Status KVInvertedLists::put_codes(size_t list_no, const uint8_t *codes, size_t codes_size) {
-  return WriteVector(codes, codes_size, [this, list_no](const KVEntry &en) {
-    en.AddKeyPrefix("list-" + std::to_string(list_no) + "/codes");
-    return this->put(en);
-  });
+  return WriteToKVStore("list-" + std::to_string(list_no) + "/codes", codes, codes_size, put);
 }
 
+std::pair<KVInvertedLists::KeyType, size_t> KVInvertedLists::parse_key(const std::string &key) {
+  size_t list_no = 0;
+  auto vector_slashe_pos = key.find_last_of('/');
+  if (vector_slashe_pos == std::string::npos) return std::make_pair(KeyType::Others, list_no);
+
+  auto list_slashe_pos = key.find_last_of('/', vector_slashe_pos - 1);
+  if (list_slashe_pos == std::string::npos) list_slashe_pos = 0;
+  else list_slashe_pos++;
+
+  auto list_str = key.substr(list_slashe_pos, vector_slashe_pos - list_slashe_pos);
+  if (list_str.length() < 6) return std::make_pair(KeyType::Others, list_no);
+  if (list_str.substr(0, 5) != "list-")return std::make_pair(KeyType::Others, list_no);
+  for (size_t i = 5; i < list_str.length(); i++) {
+    if (list_str.at(i) > '9' || list_str.at(i) < '0') return std::make_pair(KeyType::Others, list_no);
+    list_no = list_no * 10 + static_cast<size_t>(list_str.at(i) - '0');
+  }
+
+  auto vector_str = key.substr(vector_slashe_pos + 1);
+
+  if (vector_str == "ids") return std::make_pair(KeyType::IDS, list_no);
+  else if (vector_str == "codes") return std::make_pair(KeyType::CODES, list_no);
+  else return std::make_pair(KeyType::Others, list_no);
+}
 
 }

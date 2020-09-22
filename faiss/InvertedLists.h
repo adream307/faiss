@@ -360,18 +360,12 @@ struct KVEntry {
 typedef std::function<Status(const KVEntry &)> KVPutF;
 typedef std::function<Status(KVEntry &)> KVGetF;
 
-/************************************
- *  size :  size of verotr
- *  data : data of vector
- ************************************/
 template<typename T>
 typename std::enable_if<(std::is_integral<T>::value || std::is_floating_point<T>::value)
                             && !std::is_same<T, bool>::value, Status>::type
-WriteVector(const T *d, const size_t size, KVPutF f) {
-  auto s = f(KVEntry("size", &size, sizeof(size)));
-  if (!s.ok()) return s;
-
-  return f(KVEntry("data", d, sizeof(T) * size));
+WriteToKVStore(const std::string &k, const T *d, const size_t size, const KVPutF &f) {
+  KVEntry e(k, d, sizeof(T) * size);
+  return f(e);
 }
 
 template<typename T>
@@ -390,21 +384,26 @@ ReadFromKVStore(std::string k, T &v, const KVGetF &f) {
 template<typename T>
 typename std::enable_if<(std::is_integral<T>::value || std::is_floating_point<T>::value)
                             && !std::is_same<T, bool>::value, Status>::type
-ReadVector(const T *&d, size_t &size, KVGetF f) {
-  auto s = ReadFromKVStore("size", size, f);
-  if (!s.ok()) return s;
-
-  KVEntry e("data");
-  s = f(e);
+ReadFromKVStore(const std::string &k, const T *&d, size_t &size, const KVGetF &f) {
+  KVEntry e(k);
+  auto s = f(e);
   if (!s.ok()) return s;
   if (e.size % sizeof(T) != 0) return Status{Status::UnExpected};
   d = reinterpret_cast<const T *>(e.value);
+  size = e.size / sizeof(T);
   return Status{Status::OK};
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 class KVInvertedLists : public InvertedLists {
+ public:
+  enum class KeyType : int32_t {
+    Others = 0,
+    IDS,
+    CODES,
+  };
+
  public:
   KVInvertedLists(size_t nlist, size_t code_size, KVPutF p, KVGetF g);
   virtual ~KVInvertedLists() noexcept = default;
@@ -421,9 +420,7 @@ class KVInvertedLists : public InvertedLists {
   virtual Status get_codes(size_t list_no, const uint8_t *&codes, size_t &codes_size) const;
   virtual Status put_ids(size_t list_no, const faiss::Index::idx_t *ids, size_t list_size);
   virtual Status put_codes(size_t list_no, const uint8_t *codes, size_t codes_size);
-  bool is_ids_key(const std::string &key);
-  bool is_codes_key(const std::string &key);
-  size_t parse_list_no(const std::string &key);
+  std::pair<KeyType, size_t> parse_key(const std::string &key);
  protected:
   KVPutF put;
   KVGetF get;

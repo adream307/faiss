@@ -14,13 +14,54 @@
 namespace faiss {
 
 MapInvertedLists::MapInvertedLists(size_t nlist, size_t code_size) :
-    KVInvertedLists(nlist, code_size,nullptr,nullptr) {
+    KVInvertedLists(nlist, code_size, nullptr, nullptr) {
   for (size_t i = 0; i < nlist; i++) {
     Entry en;
     en.list_no = i;
     datas[i] = en;
   }
-}
+  get = [this](KVEntry &en) {
+    auto key_info = parse_key(en.key);
+    auto it = datas.find(key_info.second);
+    switch (key_info.first) {
+      case KeyType::IDS: {
+        en.value = it->second.ids.data();
+        en.size = sizeof(faiss::Index::idx_t) * it->second.ids.size();
+        break;
+      }
+      case KeyType::CODES: {
+        en.value = it->second.codes.data();
+        en.size = it->second.codes.size();
+        break;
+      }
+      default: {
+        en.value = nullptr;
+        en.size = 0;
+      }
 
+    }
+    return Status{Status::OK};
+  };
+
+  put = [this](const KVEntry &en) {
+    auto key_info = parse_key(en.key);
+    auto it = datas.find(key_info.second);
+    switch (key_info.first) {
+      case KeyType::IDS: {
+        it->second.ids.resize(en.size / sizeof(faiss::Index::idx_t));
+        memcpy(it->second.ids.data(), en.value, en.size);
+        break;
+      }
+      case KeyType::CODES: {
+        it->second.codes.resize(en.size);
+        memcpy(it->second.codes.data(), en.value, en.size);
+        break;
+      }
+      default: return Status{Status::UnExpected};
+
+    }
+    return Status{Status::OK};
+  };
+}
 
 }//namespace faiss
