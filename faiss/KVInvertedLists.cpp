@@ -133,8 +133,11 @@ void KVInvertedLists::resize(size_t list_no, size_t new_size) {
 
   std::vector<faiss::Index::idx_t> ids_v(new_size);
   memcpy(ids_v.data(), ids_o, sizeof(faiss::Index::idx_t) * min_size);
+  s = put_ids(list_no, ids_v.data(), ids_v.size());
+  assert(s.ok());
   std::vector<uint8_t> codes_v(new_size * code_size);
   memcpy(codes_v.data(), codes_o, code_size * min_size);
+  s = put_codes(list_no, codes_v.data(), codes_v.size());
 }
 
 Status KVInvertedLists::get_ids(size_t list_no, const faiss::Index::idx_t *&ids, size_t &list_size) const {
