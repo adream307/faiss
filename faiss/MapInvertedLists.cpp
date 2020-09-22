@@ -64,23 +64,23 @@ MapInvertedLists::MapInvertedLists(size_t nlist, size_t code_size) :
   };
 }
 
-size_t MapInvertedLists::list_size(size_t list_no) const {
-  assert (list_no < nlist);
-  auto it = datas.find(list_no);
-  return it->second.ids.size();
-}
+//size_t MapInvertedLists::list_size(size_t list_no) const {
+//  assert (list_no < nlist);
+//  auto it = datas.find(list_no);
+//  return it->second.ids.size();
+//}
 
-const uint8_t *MapInvertedLists::get_codes(size_t list_no) const {
-  assert (list_no < nlist);
-  auto it = datas.find(list_no);
-  return it->second.codes.data();
-}
+//const uint8_t *MapInvertedLists::get_codes(size_t list_no) const {
+//  assert (list_no < nlist);
+//  auto it = datas.find(list_no);
+//  return it->second.codes.data();
+//}
 
-const InvertedLists::idx_t *MapInvertedLists::get_ids(size_t list_no) const {
-  assert (list_no < nlist);
-  auto it = datas.find(list_no);
-  return it->second.ids.data();
-}
+//const InvertedLists::idx_t *MapInvertedLists::get_ids(size_t list_no) const {
+//  assert (list_no < nlist);
+//  auto it = datas.find(list_no);
+//  return it->second.ids.data();
+//}
 
 size_t MapInvertedLists::add_entries(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *code) {
   if (n_entry == 0) {
