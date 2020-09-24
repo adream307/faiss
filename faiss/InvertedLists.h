@@ -341,59 +341,6 @@ class Status {
 
 };
 
-struct KVEntry {
-  mutable std::string key;
-  const void *value;
-  size_t size;
-
-  KVEntry() {}
-  KVEntry(std::string k) : key(std::move(k)) {}
-  KVEntry(std::string k, const void *v, size_t s) : key(std::move(k)), value(v), size(s) {}
-  KVEntry(const char *k, const char *v) : key(std::string(k)), value(v), size(strlen(v)) {}
-
-  const std::string &AddKeyPrefix(const std::string &prefix) const {
-    key = prefix + key;
-    return key;
-  }
-};
-
-typedef std::function<Status(const KVEntry &)> KVPutF;
-typedef std::function<Status(KVEntry &)> KVGetF;
-
-template<typename T>
-typename std::enable_if<(std::is_integral<T>::value || std::is_floating_point<T>::value)
-                            && !std::is_same<T, bool>::value, Status>::type
-WriteToKVStore(const std::string &k, const T *d, const size_t size, const KVPutF &f) {
-  KVEntry e(k, d, sizeof(T) * size);
-  return f(e);
-}
-
-template<typename T>
-typename std::enable_if<(std::is_integral<T>::value || std::is_floating_point<T>::value)
-                            && !std::is_same<T, bool>::value, Status>::type
-ReadFromKVStore(std::string k, T &v, const KVGetF &f) {
-  KVEntry e;
-  e.key = std::move(k);
-  auto s = f(e);
-  if (!s.ok()) return s;
-  if (e.size != sizeof(T)) return Status{Status::UnExpected};
-  memcpy(&v, e.value, e.size);
-  return Status{Status::OK};
-}
-
-template<typename T>
-typename std::enable_if<(std::is_integral<T>::value || std::is_floating_point<T>::value)
-                            && !std::is_same<T, bool>::value, Status>::type
-ReadFromKVStore(const std::string &k, const T *&d, size_t &size, const KVGetF &f) {
-  KVEntry e(k);
-  auto s = f(e);
-  if (!s.ok()) return s;
-  if (e.size % sizeof(T) != 0) return Status{Status::UnExpected};
-  d = reinterpret_cast<const T *>(e.value);
-  size = e.size / sizeof(T);
-  return Status{Status::OK};
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 
 class KVInvertedLists : public InvertedLists {
@@ -405,8 +352,8 @@ class KVInvertedLists : public InvertedLists {
   };
 
  public:
-  KVInvertedLists(size_t nlist, size_t code_size, KVPutF p, KVGetF g);
-  virtual ~KVInvertedLists() noexcept = default;
+  KVInvertedLists(size_t nlist, size_t code_size, bool cached = true);
+  ~KVInvertedLists() noexcept override;
   KVInvertedLists(const KVInvertedLists &) = delete;
   KVInvertedLists(KVInvertedLists &&) = delete;
   KVInvertedLists &operator=(const KVInvertedLists &) = delete;
@@ -415,21 +362,31 @@ class KVInvertedLists : public InvertedLists {
   size_t list_size(size_t list_no) const override;
   const uint8_t *get_codes(size_t list_no) const override;
   const idx_t *get_ids(size_t list_no) const override;
+  void release_codes(size_t list_no, const uint8_t *codes) const override;
+  void release_ids(size_t list_no, const idx_t *ids) const override;
 
   size_t add_entries(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
   void update_entries(size_t list_no, size_t offset, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
   void resize(size_t list_no, size_t new_size) override;
+
  protected:
-  virtual Status get_ids(size_t list_no, const faiss::Index::idx_t *&ids, size_t &list_size) const;
-  virtual Status get_codes(size_t list_no, const uint8_t *&codes, size_t &codes_size) const;
-  virtual Status put_ids(size_t list_no, std::vector<uint8_t> &data_buffer);
-  virtual Status put_codes(size_t list_no, std::vector<uint8_t> &data_buffer);
-  std::pair<KeyType, size_t> parse_key(const std::string &key);
+  void get_list(size_t list_no);
+  void put_list(size_t list_no);
+
+ protected:
+  static std::string to_ids_key(size_t list_no);
+  static std::string to_codes_key(size_t list_no);
+  static std::pair<KeyType, size_t> parse_key(const std::string &key);
 
  protected:
   static constexpr auto idx_t_size = sizeof(faiss::Index::idx_t);
-  KVPutF put;
-  KVGetF get;
+  std::function<Status(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *codes)> put;
+  std::function<Status(size_t list_no, std::string *ids, std::string *codes)> get;
+
+ protected:
+  mutable std::vector<std::string *> ids_;
+  mutable std::vector<std::string *> codes_;
+  const bool cached_;
 };
 
 struct MapInvertedLists : public KVInvertedLists {
