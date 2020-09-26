@@ -352,7 +352,7 @@ class KVInvertedLists : public InvertedLists {
   };
 
  public:
-  KVInvertedLists(size_t nlist, size_t code_size, bool cached = true);
+  KVInvertedLists(size_t nlist, size_t code_size);
   ~KVInvertedLists() noexcept override;
   KVInvertedLists(const KVInvertedLists &) = delete;
   KVInvertedLists(KVInvertedLists &&) = delete;
@@ -370,8 +370,8 @@ class KVInvertedLists : public InvertedLists {
   void resize(size_t list_no, size_t new_size) override;
 
  protected:
-  void get_list(size_t list_no);
-  void put_list(size_t list_no);
+  void get_list(size_t list_no) const;
+  void put_list(size_t list_no) const;
 
  protected:
   static std::string to_ids_key(size_t list_no);
@@ -386,7 +386,6 @@ class KVInvertedLists : public InvertedLists {
  protected:
   mutable std::vector<std::string *> ids_;
   mutable std::vector<std::string *> codes_;
-  const bool cached_;
 };
 
 struct MapInvertedLists : public KVInvertedLists {
