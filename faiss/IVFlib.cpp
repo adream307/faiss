@@ -179,10 +179,10 @@ void search_and_return_centroids(faiss::Index *index,
 SlidingIndexWindow::SlidingIndexWindow (Index *index): index (index) {
     n_slice = 0;
     IndexIVF* index_ivf = const_cast<IndexIVF*>(extract_index_ivf (index));
-    ils = dynamic_cast<ArrayInvertedLists *> (index_ivf->invlists);
-    nlist = ils->nlist;
+    ils = dynamic_cast<MapInvertedLists *> (index_ivf->invlists);
     FAISS_THROW_IF_NOT_MSG (ils,
                "only supports indexes with ArrayInvertedLists");
+    nlist = ils->nlist;
     sizes.resize(nlist);
 }
 
@@ -212,10 +212,10 @@ void SlidingIndexWindow::step(const Index *sub_index, bool remove_oldest) {
     FAISS_THROW_IF_NOT_MSG (!remove_oldest || n_slice > 0,
                             "cannot remove slice: there is none");
 
-    const ArrayInvertedLists *ils2 = nullptr;
+    const MapInvertedLists *ils2 = nullptr;
     if(sub_index) {
         check_compatible_for_merge (index, sub_index);
-        ils2 = dynamic_cast<const ArrayInvertedLists*>(
+        ils2 = dynamic_cast<const MapInvertedLists*>(
                                    extract_index_ivf (sub_index)->invlists);
         FAISS_THROW_IF_NOT_MSG (ils2, "supports only ArrayInvertedLists");
     }
@@ -225,30 +225,30 @@ void SlidingIndexWindow::step(const Index *sub_index, bool remove_oldest) {
         for (int i = 0; i < nlist; i++) {
             std::vector<size_t> & sizesi = sizes[i];
             size_t amount_to_remove = sizesi[0];
-            index_ivf->ntotal += ils2->ids[i].size() - amount_to_remove;
+            index_ivf->ntotal += ils2->datas.at(i).ids.size() - amount_to_remove;
 
-            shift_and_add (ils->ids[i], amount_to_remove, ils2->ids[i]);
-            shift_and_add (ils->codes[i], amount_to_remove * ils->code_size,
-                           ils2->codes[i]);
+            shift_and_add (ils->datas.at(i).ids, amount_to_remove, ils2->datas.at(i).ids);
+            shift_and_add (ils->datas.at(i).codes, amount_to_remove * ils->code_size,
+                           ils2->datas.at(i).codes);
             for (int j = 0; j + 1 < n_slice; j++) {
                 sizesi[j] = sizesi[j + 1] - amount_to_remove;
             }
-            sizesi[n_slice - 1] = ils->ids[i].size();
+            sizesi[n_slice - 1] = ils->datas.at(i).ids.size();
         }
     } else if (ils2) {
         for (int i = 0; i < nlist; i++) {
-            index_ivf->ntotal += ils2->ids[i].size();
-            shift_and_add (ils->ids[i], 0, ils2->ids[i]);
-            shift_and_add (ils->codes[i], 0, ils2->codes[i]);
-            sizes[i].push_back(ils->ids[i].size());
+            index_ivf->ntotal += ils2->datas.at(i).ids.size();
+            shift_and_add (ils->datas.at(i).ids, 0, ils2->datas.at(i).ids);
+            shift_and_add (ils->datas.at(i).codes, 0, ils2->datas.at(i).codes);
+            sizes[i].push_back(ils->datas.at(i).ids.size());
         }
         n_slice++;
     } else if (remove_oldest) {
         for (int i = 0; i < nlist; i++) {
             size_t amount_to_remove = sizes[i][0];
             index_ivf->ntotal -= amount_to_remove;
-            remove_from_begin (ils->ids[i], amount_to_remove);
-            remove_from_begin (ils->codes[i],
+            remove_from_begin (ils->datas.at(i).ids, amount_to_remove);
+            remove_from_begin (ils->datas.at(i).codes,
                                amount_to_remove * ils->code_size);
             for (int j = 0; j + 1 < n_slice; j++) {
                 sizes[i][j] = sizes[i][j + 1] - amount_to_remove;
@@ -295,7 +295,7 @@ void set_invlist_range (Index *index, long i0, long i1,
 
     FAISS_THROW_IF_NOT (0 <= i0 && i0 <= i1 && i1 <= ivf->nlist);
 
-    ArrayInvertedLists *dst = dynamic_cast<ArrayInvertedLists *>(ivf->invlists);
+    MapInvertedLists *dst = dynamic_cast<MapInvertedLists *>(ivf->invlists);
     FAISS_THROW_IF_NOT_MSG (dst, "only ArrayInvertedLists supported");
     FAISS_THROW_IF_NOT (src->nlist == i1 - i0 &&
                         dst->code_size == src->code_size);
@@ -304,8 +304,8 @@ void set_invlist_range (Index *index, long i0, long i1,
     for (long i = i0 ; i < i1; i++) {
         ntotal -= dst->list_size (i);
         ntotal += src->list_size (i - i0);
-        std::swap (src->codes[i - i0], dst->codes[i]);
-        std::swap (src->ids[i - i0], dst->ids[i]);
+        std::swap (src->codes[i - i0], dst->datas.at(i).codes);
+        std::swap (src->ids[i - i0], dst->datas.at(i).ids);
     }
     ivf->ntotal = index->ntotal = ntotal;
 }

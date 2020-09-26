@@ -97,6 +97,10 @@ Index *Cloner::clone_Index (const Index *index)
                    (ivf->invlists)) {
             res->invlists = new ArrayInvertedLists(*ails);
             res->own_invlists = true;
+        } else if (auto *mils = dynamic_cast<const MapInvertedLists*>
+                   (ivf->invlists)) {
+            res->invlists = new MapInvertedLists(*mils);
+            res->own_invlists = true;
         } else {
             FAISS_THROW_MSG( "clone not supported for this type of inverted lists");
         }
