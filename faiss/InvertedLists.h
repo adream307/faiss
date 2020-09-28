@@ -321,25 +321,6 @@ struct MaskedInvertedLists : ReadOnlyInvertedLists {
   void prefetch_lists(const idx_t *list_nos, int nlist) const override;
 
 };
-/////////////////////////////////////////////////////////////////////////////////////
-
-class Status {
- public:
-  enum ErrCode : int {
-    OK = 0,
-    UnSupported,
-    UnExpected
-  };
-
-  ErrCode Code() const { return code_; }
-
-  explicit Status(ErrCode c = OK) : code_(c) {}
-  bool ok() { return code_ == OK; }
-
- private:
-  ErrCode code_ = OK;
-
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -353,10 +334,7 @@ class KVInvertedLists : public InvertedLists {
 
  public:
   KVInvertedLists(size_t nlist,
-                  size_t code_size,
-                  std::function<Status(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *codes)> put,
-                  std::function<Status(size_t list_no, std::string *ids, std::string *codes)> get,
-                  bool cache = false);
+                  size_t code_size);
   ~KVInvertedLists() noexcept override;
   KVInvertedLists(const KVInvertedLists &) = delete;
   KVInvertedLists(KVInvertedLists &&) = delete;
@@ -374,22 +352,10 @@ class KVInvertedLists : public InvertedLists {
   void resize(size_t list_no, size_t new_size) override;
 
  protected:
-  void get_list(size_t list_no) const;
-  void put_list(size_t list_no) const;
-  bool cache() const { return cache_; }
-  void set_cache(bool cache) { cache_ = cache; }
-  void release_all() const;
-
- protected:
   static constexpr auto idx_t_size = sizeof(faiss::Index::idx_t);
-  std::function<Status(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *codes)> put_;
-  std::function<Status(size_t list_no, std::string *ids, std::string *codes)> get_;
-
- protected:
-  mutable std::vector<std::string *> ids_;
-  mutable std::vector<std::string *> codes_;
-  mutable std::vector<int32_t> ref_;
-  bool cache_;
+  std::function<size_t(const std::string &key, const void *data, size_t size)> put_;
+  std::function<void *(const std::string &key, size_t &size)> get_;
+  std::function<void(const void *)> release_;
 
  public:
   static std::string to_ids_key(size_t list_no);
