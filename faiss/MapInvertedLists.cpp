@@ -36,48 +36,22 @@ MapInvertedLists::MapInvertedLists(MapInvertedLists &&ivl) :
 }
 
 void MapInvertedLists::InitKV() {
-  get = [this](KVEntry &en) {
-    auto key_info = parse_key(en.key);
-    auto it = datas.find(key_info.second);
-    switch (key_info.first) {
-      case KeyType::IDS: {
-        en.value = it->second.ids.data();
-        en.size = sizeof(faiss::Index::idx_t) * it->second.ids.size();
-        break;
-      }
-      case KeyType::CODES: {
-        en.value = it->second.codes.data();
-        en.size = it->second.codes.size();
-        break;
-      }
-      default: {
-        en.value = nullptr;
-        en.size = 0;
-      }
-
-    }
+  put_ = [this](size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *codes) {
+    datas[list_no].ids.resize(n_entry);
+    memcpy(datas[list_no].ids.data(), ids, n_entry * idx_t_size);
+    datas[list_no].codes.resize(n_entry * code_size);
+    memcpy(datas[list_no].codes.data(), codes, n_entry * code_size);
+    return Status{Status::OK};
+  };
+  get_ = [this](size_t list_no, std::string *ids, std::string *codes) {
+    auto o = datas[list_no].ids.size();
+    ids->resize(o * idx_t_size);
+    memcpy(const_cast<char *>(ids->data()), datas[list_no].ids.data(), o * idx_t_size);
+    codes->resize(o * code_size);
+    memcpy(const_cast<char *>(codes->data()), datas[list_no].codes.data(), o * code_size);
     return Status{Status::OK};
   };
 
-  put = [this](const KVEntry &en) {
-    auto key_info = parse_key(en.key);
-    auto it = datas.find(key_info.second);
-    switch (key_info.first) {
-      case KeyType::IDS: {
-        it->second.ids.resize(en.size / sizeof(faiss::Index::idx_t));
-        memcpy(it->second.ids.data(), en.value, en.size);
-        break;
-      }
-      case KeyType::CODES: {
-        it->second.codes.resize(en.size);
-        memcpy(it->second.codes.data(), en.value, en.size);
-        break;
-      }
-      default: return Status{Status::UnExpected};
-
-    }
-    return Status{Status::OK};
-  };
 }
 
 //size_t MapInvertedLists::list_size(size_t list_no) const {

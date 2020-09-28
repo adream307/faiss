@@ -352,7 +352,11 @@ class KVInvertedLists : public InvertedLists {
   };
 
  public:
-  KVInvertedLists(size_t nlist, size_t code_size);
+  KVInvertedLists(size_t nlist,
+                  size_t code_size,
+                  std::function<Status(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *codes)> put,
+                  std::function<Status(size_t list_no, std::string *ids, std::string *codes)> get,
+                  bool cache = false);
   ~KVInvertedLists() noexcept override;
   KVInvertedLists(const KVInvertedLists &) = delete;
   KVInvertedLists(KVInvertedLists &&) = delete;
@@ -372,20 +376,24 @@ class KVInvertedLists : public InvertedLists {
  protected:
   void get_list(size_t list_no) const;
   void put_list(size_t list_no) const;
-
- protected:
-  static std::string to_ids_key(size_t list_no);
-  static std::string to_codes_key(size_t list_no);
-  static std::pair<KeyType, size_t> parse_key(const std::string &key);
+  bool cache() const { return cache_; }
+  void set_cache(bool cache) { cache_ = cache; }
+  void release_all() const;
 
  protected:
   static constexpr auto idx_t_size = sizeof(faiss::Index::idx_t);
-  std::function<Status(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *codes)> put;
-  std::function<Status(size_t list_no, std::string *ids, std::string *codes)> get;
+  std::function<Status(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *codes)> put_;
+  std::function<Status(size_t list_no, std::string *ids, std::string *codes)> get_;
 
  protected:
   mutable std::vector<std::string *> ids_;
   mutable std::vector<std::string *> codes_;
+  bool cache_;
+
+ public:
+  static std::string to_ids_key(size_t list_no);
+  static std::string to_codes_key(size_t list_no);
+  static std::pair<KeyType, size_t> parse_key(const std::string &key);
 };
 
 struct MapInvertedLists : public KVInvertedLists {
