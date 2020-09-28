@@ -36,6 +36,22 @@ MapInvertedLists::MapInvertedLists(MapInvertedLists &&ivl) :
 }
 
 void MapInvertedLists::InitKV() {
+  put_ = [this](const std::string &key, const void *data, size_t size) {
+    auto kt = parse_key(key);
+    switch (kt.first) {
+      case KVInvertedLists::KeyType::IDS: {
+        datas[kt.second].ids.resize(size / idx_t_size);
+        memcpy(datas[kt.second].ids.data(), data, size);
+        return size;
+      }
+      case KVInvertedLists::KeyType::CODES: {
+        datas[kt.second].codes.resize(size);
+        memcpy(datas[kt.second].codes.data(), data, size);
+        return size;
+      }
+      default: return size_t(0);
+    }
+  };
 
 }
 
