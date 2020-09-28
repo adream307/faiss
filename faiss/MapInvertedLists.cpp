@@ -14,7 +14,7 @@
 namespace faiss {
 
 MapInvertedLists::MapInvertedLists(size_t nlist, size_t code_size) :
-    KVInvertedLists(nlist, code_size, nullptr, nullptr, true) {
+    KVInvertedLists(nlist, code_size, nullptr, nullptr, false) {
   for (size_t i = 0; i < nlist; i++) {
     Entry en;
     en.list_no = i;

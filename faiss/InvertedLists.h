@@ -388,6 +388,7 @@ class KVInvertedLists : public InvertedLists {
  protected:
   mutable std::vector<std::string *> ids_;
   mutable std::vector<std::string *> codes_;
+  mutable std::vector<int32_t> ref_;
   bool cache_;
 
  public:

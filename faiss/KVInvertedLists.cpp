@@ -24,6 +24,7 @@ KVInvertedLists::KVInvertedLists(size_t nlist,
     : InvertedLists(nlist, code_size), put_(put), get_(get), cache_(cache) {
   ids_.resize(nlist, nullptr);
   codes_.resize(nlist, nullptr);
+  ref_.resize(nlist, 0);
 }
 
 KVInvertedLists::~KVInvertedLists() noexcept {
@@ -39,6 +40,7 @@ size_t KVInvertedLists::list_size(size_t list_no) const {
 const uint8_t *KVInvertedLists::get_codes(size_t list_no) const {
   assert(list_no < nlist);
   if (codes_[list_no] == nullptr) get_list(list_no);
+  ref_[list_no]++;
   return reinterpret_cast<const uint8_t *>(codes_[list_no]->data());
 }
 
@@ -50,6 +52,8 @@ const faiss::Index::idx_t *KVInvertedLists::get_ids(size_t list_no) const {
 
 void KVInvertedLists::release_codes(size_t list_no, const uint8_t *codes) const {
   if (cache_) return;
+  ref_[list_no]--;
+  if (ref_[list_no] > 0) return;
   delete ids_[list_no];
   delete codes_[list_no];
   ids_[list_no] = nullptr;
@@ -130,6 +134,7 @@ void KVInvertedLists::release_all() const {
     ids_[i] = nullptr;
     delete codes_[i];
     codes_[i] = nullptr;
+    ref_[i] = 0;
   }
 }
 
