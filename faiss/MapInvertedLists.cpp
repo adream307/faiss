@@ -14,7 +14,7 @@
 namespace faiss {
 
 MapInvertedLists::MapInvertedLists(size_t nlist, size_t code_size) :
-    KVInvertedLists(nlist, code_size, nullptr, nullptr, false) {
+    KVInvertedLists(nlist, code_size, nullptr, nullptr, nullptr) {
   for (size_t i = 0; i < nlist; i++) {
     Entry en;
     en.list_no = i;
@@ -24,44 +24,18 @@ MapInvertedLists::MapInvertedLists(size_t nlist, size_t code_size) :
 }
 
 MapInvertedLists::MapInvertedLists(const MapInvertedLists &ivl) :
-    KVInvertedLists(ivl.nlist, ivl.code_size, nullptr, nullptr) {
+    KVInvertedLists(ivl.nlist, ivl.code_size, nullptr, nullptr, nullptr) {
   datas = ivl.datas;
-  for (size_t i = 0; i < nlist; i++) {
-    auto *pid = new std::string;
-    *pid = *ivl.ids_[i];
-    ids_[i] = pid;
-    auto *pcode = new std::string;
-    *pcode = *ivl.codes_[i];
-    codes_[i] = pcode;
-  }
   InitKV();
 }
 
 MapInvertedLists::MapInvertedLists(MapInvertedLists &&ivl) :
-    KVInvertedLists(ivl.nlist, ivl.code_size, nullptr, nullptr) {
+    KVInvertedLists(ivl.nlist, ivl.code_size, nullptr, nullptr, nullptr) {
   datas = std::move(ivl.datas);
-  ids_ = std::move(ivl.ids_);
-  codes_ = std::move(codes_);
-  cache_ = ivl.cache_;
   InitKV();
 }
 
 void MapInvertedLists::InitKV() {
-  put_ = [this](size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *codes) {
-    datas[list_no].ids.resize(n_entry);
-    memcpy(datas[list_no].ids.data(), ids, n_entry * idx_t_size);
-    datas[list_no].codes.resize(n_entry * code_size);
-    memcpy(datas[list_no].codes.data(), codes, n_entry * code_size);
-    return Status{Status::OK};
-  };
-  get_ = [this](size_t list_no, std::string *ids, std::string *codes) {
-    auto o = datas[list_no].ids.size();
-    ids->resize(o * idx_t_size);
-    memcpy(const_cast<char *>(ids->data()), datas[list_no].ids.data(), o * idx_t_size);
-    codes->resize(o * code_size);
-    memcpy(const_cast<char *>(codes->data()), datas[list_no].codes.data(), o * code_size);
-    return Status{Status::OK};
-  };
 
 }
 

@@ -331,10 +331,19 @@ class KVInvertedLists : public InvertedLists {
     IDS,
     CODES,
   };
+  struct ScopedData {
+    std::function<void()> deconstructor;
+    explicit ScopedData(std::function<void()> f) : deconstructor(std::move(f)) {}
+    ~ScopedData() { deconstructor(); }
+  };
 
  public:
   KVInvertedLists(size_t nlist,
-                  size_t code_size);
+                  size_t code_size,
+                  std::function<size_t(const std::string &key, const void *data, size_t size)> put,
+                  std::function<void *(const std::string &key, size_t &size)> get,
+                  std::function<void(const void *)> release
+  );
   ~KVInvertedLists() noexcept override;
   KVInvertedLists(const KVInvertedLists &) = delete;
   KVInvertedLists(KVInvertedLists &&) = delete;
