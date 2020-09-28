@@ -23,20 +23,35 @@ KVInvertedLists::~KVInvertedLists() noexcept {
 
 size_t KVInvertedLists::list_size(size_t list_no) const {
   assert(list_no < nlist);
+  size_t size;
+  auto p = get_(to_ids_key(list_no), size);
+  FAISS_THROW_IF_NOT_FMT(p != nullptr, "get list ids failed, list_no = %zu", list_no);
+  release_(p);
+  return size / idx_t_size;
 }
 
 const uint8_t *KVInvertedLists::get_codes(size_t list_no) const {
   assert(list_no < nlist);
+  size_t size;
+  auto p = get_(to_codes_key(list_no), size);
+  FAISS_THROW_IF_NOT_FMT(p != nullptr, "get list codes failed, list_no = %zu", list_no);
+  return reinterpret_cast<const uint8_t *>(p);
 }
 
 const faiss::Index::idx_t *KVInvertedLists::get_ids(size_t list_no) const {
   assert(list_no < nlist);
+  size_t size;
+  auto p = get_(to_ids_key(list_no), size);
+  FAISS_THROW_IF_NOT_FMT(p != nullptr, "get list ids failed, list_no = %zu", list_no);
+  return reinterpret_cast<const faiss::Index::idx_t *>(p);
 }
 
 void KVInvertedLists::release_codes(size_t list_no, const uint8_t *codes) const {
+  release_(codes);
 }
 
 void KVInvertedLists::release_ids(size_t list_no, const idx_t *ids) const {
+  release_(ids);
 }
 
 size_t KVInvertedLists::add_entries(size_t list_no,
@@ -44,6 +59,7 @@ size_t KVInvertedLists::add_entries(size_t list_no,
                                     const faiss::Index::idx_t *ids,
                                     const uint8_t *code) {
   assert(list_no < nlist);
+  
 }
 
 void KVInvertedLists::update_entries(size_t list_no,
