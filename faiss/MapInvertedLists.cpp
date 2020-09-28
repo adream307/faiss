@@ -14,7 +14,7 @@
 namespace faiss {
 
 MapInvertedLists::MapInvertedLists(size_t nlist, size_t code_size) :
-    KVInvertedLists(nlist, code_size, nullptr, nullptr) {
+    KVInvertedLists(nlist, code_size, nullptr, nullptr, true) {
   for (size_t i = 0; i < nlist; i++) {
     Entry en;
     en.list_no = i;
@@ -26,12 +26,23 @@ MapInvertedLists::MapInvertedLists(size_t nlist, size_t code_size) :
 MapInvertedLists::MapInvertedLists(const MapInvertedLists &ivl) :
     KVInvertedLists(ivl.nlist, ivl.code_size, nullptr, nullptr) {
   datas = ivl.datas;
+  for (size_t i = 0; i < nlist; i++) {
+    auto *pid = new std::string;
+    *pid = *ivl.ids_[i];
+    ids_[i] = pid;
+    auto *pcode = new std::string;
+    *pcode = *ivl.codes_[i];
+    codes_[i] = pcode;
+  }
   InitKV();
 }
 
 MapInvertedLists::MapInvertedLists(MapInvertedLists &&ivl) :
     KVInvertedLists(ivl.nlist, ivl.code_size, nullptr, nullptr) {
   datas = std::move(ivl.datas);
+  ids_ = std::move(ivl.ids_);
+  codes_ = std::move(codes_);
+  cache_ = ivl.cache_;
   InitKV();
 }
 
@@ -59,13 +70,13 @@ void MapInvertedLists::InitKV() {
 //  auto it = datas.find(list_no);
 //  return it->second.ids.size();
 //}
-
+//
 //const uint8_t *MapInvertedLists::get_codes(size_t list_no) const {
 //  assert (list_no < nlist);
 //  auto it = datas.find(list_no);
 //  return it->second.codes.data();
 //}
-
+//
 //const InvertedLists::idx_t *MapInvertedLists::get_ids(size_t list_no) const {
 //  assert (list_no < nlist);
 //  auto it = datas.find(list_no);
@@ -85,7 +96,7 @@ void MapInvertedLists::InitKV() {
 //  memcpy(&it->second.codes[o * code_size], code, code_size * n_entry);
 //  return o;
 //}
-
+//
 //void MapInvertedLists::update_entries(size_t list_no,
 //                                      size_t offset,
 //                                      size_t n_entry,
@@ -97,7 +108,7 @@ void MapInvertedLists::InitKV() {
 //  memcpy(&it->second.ids[offset], ids, sizeof(idx_t) * n_entry);
 //  memcpy(&it->second.codes[offset * code_size], code, code_size * n_entry);
 //}
-
+//
 //void MapInvertedLists::resize(size_t list_no, size_t new_size) {
 //  assert (list_no < nlist);
 //  auto it = datas.find(list_no);
