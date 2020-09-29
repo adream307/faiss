@@ -53,6 +53,27 @@ void MapInvertedLists::InitKV() {
     }
   };
 
+  get_ = [this](const std::string &key, size_t &size) {
+    auto kt = parse_key(key);
+    switch (kt.first) {
+      case KVInvertedLists::KeyType::IDS: {
+        size = datas[kt.second].ids.size() * idx_t_size;
+        auto data = malloc(size);
+        memcpy(data, datas[kt.second].ids.data(), size);
+        return data;
+      }
+      case KVInvertedLists::KeyType::CODES: {
+        size = datas[kt.second].codes.size();
+        auto data = malloc(size);
+        memcpy(data, datas[kt.second].codes.data(), size);
+        return data;
+      }
+      default: return (void *) nullptr;
+    }
+  };
+
+  release_ = [](const void *p) { free((void *) p); };
+
 }
 
 //size_t MapInvertedLists::list_size(size_t list_no) const {

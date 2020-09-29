@@ -77,14 +77,14 @@ size_t KVInvertedLists::add_entries(size_t list_no,
   memcpy(n_ids, o_ids, o * idx_t_size);
   memcpy(n_ids + o, ids, n_entry * idx_t_size);
   auto n_put = put_(to_ids_key(list_no), n_ids, (o + n_entry) * idx_t_size);
-  FAISS_THROW_IF_NOT_FMT(n_put != (o + n_entry) * idx_t_size, "put list ids failed, list_no = %zu", list_no);
+  FAISS_THROW_IF_NOT_FMT(n_put == (o + n_entry) * idx_t_size, "put list ids failed, list_no = %zu", list_no);
 
   auto n_codes = new uint8_t[(o + n_entry) * code_size];
   ScopedData sn_codes([n_codes] { delete[] n_codes; });
   memcpy(n_codes, o_codes, o * code_size);
   memcpy(n_codes + o * code_size, code, n_entry * code_size);
   n_put = put_(to_codes_key(list_no), n_codes, (o + n_entry) * code_size);
-  FAISS_THROW_IF_NOT_FMT(n_put != (o + n_entry) * code_size, "put list codes failed, list_no = %zu", list_no);
+  FAISS_THROW_IF_NOT_FMT(n_put == (o + n_entry) * code_size, "put list codes failed, list_no = %zu", list_no);
   return o;
 }
 
@@ -107,10 +107,10 @@ void KVInvertedLists::update_entries(size_t list_no,
   assert(offset + n_entry <= o);
   memcpy((uint8_t *) o_ids + offset * idx_t_size, ids, n_entry * idx_t_size);
   auto n_put = put_(to_ids_key(list_no), o_ids, o * idx_t_size);
-  FAISS_THROW_IF_NOT_FMT(n_put != o * idx_t_size, "put list ids failed, list_no = %zu", list_no);
+  FAISS_THROW_IF_NOT_FMT(n_put == o * idx_t_size, "put list ids failed, list_no = %zu", list_no);
   memcpy((uint8_t *) o_codes + offset * code_size, code, n_entry * code_size);
   n_put = put_(to_codes_key(list_no), o_codes, o * code_size);
-  FAISS_THROW_IF_NOT_FMT(n_put != o * code_size, "put list codes faile, list_no = %zu", list_no);
+  FAISS_THROW_IF_NOT_FMT(n_put == o * code_size, "put list codes faile, list_no = %zu", list_no);
 }
 
 void KVInvertedLists::resize(size_t list_no, size_t new_size) {
@@ -129,13 +129,13 @@ void KVInvertedLists::resize(size_t list_no, size_t new_size) {
   ScopedData sn_ids([n_ids] { delete[] n_ids; });
   memcpy(n_ids, o_ids, new_size * idx_t_size);
   auto n_put = put_(to_ids_key(list_no), n_ids, new_size * idx_t_size);
-  FAISS_THROW_IF_NOT_FMT(n_put != new_size * idx_t_size, "put list ids failed, list_no = %zu", list_no);
+  FAISS_THROW_IF_NOT_FMT(n_put == new_size * idx_t_size, "put list ids failed, list_no = %zu", list_no);
 
   auto n_codes = new uint8_t[new_size * code_size];
   ScopedData sn_codes([n_codes] { delete[] n_codes; });
   memcpy(n_codes, o_codes, new_size * code_size);
   n_put = put_(to_codes_key(list_no), n_codes, new_size * code_size);
-  FAISS_THROW_IF_NOT_FMT(n_put != new_size * code_size, "put list failed, list_no = %zu", list_no);
+  FAISS_THROW_IF_NOT_FMT(n_put == new_size * code_size, "put list failed, list_no = %zu", list_no);
 }
 
 std::string KVInvertedLists::to_ids_key(size_t list_no) {
