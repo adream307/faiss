@@ -24,7 +24,8 @@ KVInvertedLists::KVInvertedLists(size_t nlist,
 }
 
 KVInvertedLists::~KVInvertedLists() noexcept {
-  release_all();
+  for (auto p:ids_) delete p;
+  for (auto p:codes_) delete p;
 }
 
 size_t KVInvertedLists::list_size(size_t list_no) const {
@@ -50,11 +51,6 @@ void KVInvertedLists::prefetch_lists(const idx_t *list_nos, int nlist) const {
     get_lists(list_nos[i]);
   }
 }
-
-void KVInvertedLists::release_all() {
-  for (auto p:ids_) delete p;
-  for (auto p:codes_) delete p;
-};
 
 size_t KVInvertedLists::add_entries(size_t list_no,
                                     size_t n_entry,
@@ -93,17 +89,35 @@ void KVInvertedLists::resize(size_t list_no, size_t new_size) {
   codes_[list_no]->resize(new_size * code_size);
 }
 
+void KVInvertedLists::reset() {
+  for (size_t i = 0; i < nlist; i++) {
+    delete ids_[i];
+    ids_[i] = nullptr;
+    delete codes_[i];
+    codes_[i] = nullptr;
+  }
+}
+
+void KVInvertedLists::merge_from(InvertedLists *oivf, size_t add_id) {
+  std::vector<faiss::Index::idx_t> list_nos(nlist);
+  for (size_t i = 0; i < nlist; i++) list_nos[i] = i;
+  oivf->prefetch_lists(list_nos.data(), nlist);
+  prefetch_lists(list_nos.data(), nlist);
+  InvertedLists::merge_from(oivf, add_id);
+  for (size_t i = 0; i < nlist; i++) if (ids_[i] != nullptr) put_lists(i);
+}
+
 void KVInvertedLists::copy_lists(KVInvertedLists &&lists) {
   assert(nlist == lists.nlist);
   assert(code_size == lists.code_size);
-  release_all();
+  reset();
   ids_ = std::move(lists.ids_);
   codes_ = std::move(lists.codes_);
 }
 void KVInvertedLists::copy_lists(const KVInvertedLists &lists) {
   assert(nlist == lists.nlist);
   assert(code_size == lists.code_size);
-  release_all();
+  reset();
 
   for (size_t i = 0; i < nlist; i++) {
     if (lists.ids_[i] != nullptr) ids_[i] = new std::string(*lists.ids_[i]);

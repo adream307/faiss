@@ -350,11 +350,11 @@ class KVInvertedLists : public InvertedLists {
   const idx_t *get_ids(size_t list_no) const override;
   void prefetch_lists(const idx_t *list_nos, int nlist) const override;
 
-  void release_all();
-
   size_t add_entries(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
   void update_entries(size_t list_no, size_t offset, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
   void resize(size_t list_no, size_t new_size) override;
+  void reset() override;
+  void merge_from(InvertedLists *oivf, size_t add_id);
 
  protected:
   void copy_lists(KVInvertedLists &&lists);
