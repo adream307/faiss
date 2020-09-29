@@ -30,19 +30,19 @@ KVInvertedLists::~KVInvertedLists() noexcept {
 
 size_t KVInvertedLists::list_size(size_t list_no) const {
   assert(list_no < nlist);
-  FAISS_THROW_IF_NOT_FMT(ids_[list_no] != nullptr, "have not prefetch list %zu", list_no);
+  if (ids_[list_no] == nullptr) get_lists(list_no);
   return ids_[list_no]->size() / idx_t_size;
 }
 
 const uint8_t *KVInvertedLists::get_codes(size_t list_no) const {
   assert(list_no < nlist);
-  FAISS_THROW_IF_NOT_FMT(codes_[list_no] != nullptr, "have not prefetch list %zu", list_no);
+  if (codes_[list_no] == nullptr) get_lists(list_no);
   return reinterpret_cast<const uint8_t *>(codes_[list_no]->data());
 }
 
 const faiss::Index::idx_t *KVInvertedLists::get_ids(size_t list_no) const {
   assert(list_no < nlist);
-  FAISS_THROW_IF_NOT_FMT(ids_[list_no] != nullptr, "have not prefetch list %zu", list_no);
+  if (ids_[list_no] == nullptr) get_lists(list_no);
   return reinterpret_cast<const faiss::Index::idx_t *>(ids_[list_no]->data());
 }
 
@@ -96,15 +96,6 @@ void KVInvertedLists::reset() {
     delete codes_[i];
     codes_[i] = nullptr;
   }
-}
-
-void KVInvertedLists::merge_from(InvertedLists *oivf, size_t add_id) {
-  std::vector<faiss::Index::idx_t> list_nos(nlist);
-  for (size_t i = 0; i < nlist; i++) list_nos[i] = i;
-  oivf->prefetch_lists(list_nos.data(), nlist);
-  prefetch_lists(list_nos.data(), nlist);
-  InvertedLists::merge_from(oivf, add_id);
-  for (size_t i = 0; i < nlist; i++) if (ids_[i] != nullptr) put_lists(i);
 }
 
 void KVInvertedLists::copy_lists(KVInvertedLists &&lists) {
