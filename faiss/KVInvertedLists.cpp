@@ -15,76 +15,60 @@ namespace faiss {
 
 KVInvertedLists::KVInvertedLists(size_t nlist,
                                  size_t code_size,
-                                 std::function<size_t(const std::string &key, const void *data, size_t size)> put,
-                                 std::function<void *(const std::string &key, size_t &size)> get,
-                                 std::function<void(const void *)> release
+                                 std::function<bool(const std::string &key, const std::string &value)> put,
+                                 std::function<bool(const std::string &key, std::string &value)> get
 )
-    : InvertedLists(nlist, code_size), put_(put), get_(get), release_(release) {
+    : InvertedLists(nlist, code_size), put_(std::move(put)), get_(std::move(get)) {
+  ids_.resize(nlist, nullptr);
+  codes_.resize(nlist, nullptr);
 }
 
 KVInvertedLists::~KVInvertedLists() noexcept {
+  release_all();
 }
 
 size_t KVInvertedLists::list_size(size_t list_no) const {
   assert(list_no < nlist);
-  size_t size;
-  auto p = get_(to_ids_key(list_no), size);
-  FAISS_THROW_IF_NOT_FMT(p != nullptr, "get list ids failed, list_no = %zu", list_no);
-  release_(p);
-  return size / idx_t_size;
+  FAISS_THROW_IF_NOT_FMT(ids_[list_no] != nullptr, "have not prefetch list %zu", list_no);
+  return ids_[list_no]->size() / idx_t_size;
 }
 
 const uint8_t *KVInvertedLists::get_codes(size_t list_no) const {
   assert(list_no < nlist);
-  size_t size;
-  auto p = get_(to_codes_key(list_no), size);
-  FAISS_THROW_IF_NOT_FMT(p != nullptr, "get list codes failed, list_no = %zu", list_no);
-  return reinterpret_cast<const uint8_t *>(p);
+  FAISS_THROW_IF_NOT_FMT(codes_[list_no] != nullptr, "have not prefetch list %zu", list_no);
+  return reinterpret_cast<const uint8_t *>(codes_[list_no]->data());
 }
 
 const faiss::Index::idx_t *KVInvertedLists::get_ids(size_t list_no) const {
   assert(list_no < nlist);
-  size_t size;
-  auto p = get_(to_ids_key(list_no), size);
-  FAISS_THROW_IF_NOT_FMT(p != nullptr, "get list ids failed, list_no = %zu", list_no);
-  return reinterpret_cast<const faiss::Index::idx_t *>(p);
+  FAISS_THROW_IF_NOT_FMT(ids_[list_no] != nullptr, "have not prefetch list %zu", list_no);
+  return reinterpret_cast<const faiss::Index::idx_t *>(ids_[list_no]->data());
 }
 
-void KVInvertedLists::release_codes(size_t list_no, const uint8_t *codes) const {
-  release_(codes);
+void KVInvertedLists::prefetch_lists(const idx_t *list_nos, int nlist) const {
+  for (int i = 0; i < nlist; i++) {
+    get_lists(list_nos[i]);
+  }
 }
 
-void KVInvertedLists::release_ids(size_t list_no, const idx_t *ids) const {
-  release_(ids);
-}
+void KVInvertedLists::release_all() {
+  for (auto p:ids_) delete p;
+  for (auto p:codes_) delete p;
+};
 
 size_t KVInvertedLists::add_entries(size_t list_no,
                                     size_t n_entry,
                                     const faiss::Index::idx_t *ids,
                                     const uint8_t *code) {
+  if (n_entry == 0) return 0;
   assert(list_no < nlist);
-  size_t o, co;
-  auto o_ids = get_(to_ids_key(list_no), o);
-  FAISS_THROW_IF_NOT_FMT(o_ids != nullptr, "get list ids failed, list_no = %zu", list_no);
-  ScopedData so_ids([this, o_ids] { this->release_(o_ids); });
-  o /= idx_t_size;
-  auto o_codes = get_(to_codes_key(list_no), co);
-  FAISS_THROW_IF_NOT_FMT(o_codes != nullptr, "get list codes failed, list_no = %zu", list_no);
-  ScopedData so_codes([this, o_codes] { this->release_(o_codes); });
-
-  auto n_ids = new faiss::Index::idx_t[o + n_entry];
-  ScopedData sn_ids([n_ids] { delete[] n_ids; });
-  memcpy(n_ids, o_ids, o * idx_t_size);
-  memcpy(n_ids + o, ids, n_entry * idx_t_size);
-  auto n_put = put_(to_ids_key(list_no), n_ids, (o + n_entry) * idx_t_size);
-  FAISS_THROW_IF_NOT_FMT(n_put == (o + n_entry) * idx_t_size, "put list ids failed, list_no = %zu", list_no);
-
-  auto n_codes = new uint8_t[(o + n_entry) * code_size];
-  ScopedData sn_codes([n_codes] { delete[] n_codes; });
-  memcpy(n_codes, o_codes, o * code_size);
-  memcpy(n_codes + o * code_size, code, n_entry * code_size);
-  n_put = put_(to_codes_key(list_no), n_codes, (o + n_entry) * code_size);
-  FAISS_THROW_IF_NOT_FMT(n_put == (o + n_entry) * code_size, "put list codes failed, list_no = %zu", list_no);
+  get_lists(list_no);
+  auto o = ids_[list_no]->size() / idx_t_size;
+  ids_[list_no]->resize((o + n_entry) * idx_t_size);
+  memcpy(&ids_[list_no]->at(o * idx_t_size), ids, n_entry * idx_t_size);
+  codes_[list_no]->resize((o + n_entry) * code_size);
+  memcpy(&codes_[list_no]->at(o * code_size), code, n_entry * code_size);
+  put_lists(list_no);
   return o;
 }
 
@@ -94,48 +78,65 @@ void KVInvertedLists::update_entries(size_t list_no,
                                      const faiss::Index::idx_t *ids,
                                      const uint8_t *code) {
   assert(list_no < nlist);
-
-  size_t o, co;
-  auto o_ids = get_(to_ids_key(list_no), o);
-  FAISS_THROW_IF_NOT_FMT(o_ids != nullptr, "get list ids failed, list_no = %zu", list_no);
-  ScopedData so_ids([this, o_ids] { this->release_(o_ids); });
-  o /= idx_t_size;
-  auto o_codes = get_(to_codes_key(list_no), co);
-  FAISS_THROW_IF_NOT_FMT(o_codes != nullptr, "get list codes failed, list_no = %zu", list_no);
-  ScopedData so_codes([this, o_codes] { this->release_(o_codes); });
-
+  get_lists(list_no);
+  auto o = ids_[list_no]->size() / idx_t_size;
   assert(offset + n_entry <= o);
-  memcpy((uint8_t *) o_ids + offset * idx_t_size, ids, n_entry * idx_t_size);
-  auto n_put = put_(to_ids_key(list_no), o_ids, o * idx_t_size);
-  FAISS_THROW_IF_NOT_FMT(n_put == o * idx_t_size, "put list ids failed, list_no = %zu", list_no);
-  memcpy((uint8_t *) o_codes + offset * code_size, code, n_entry * code_size);
-  n_put = put_(to_codes_key(list_no), o_codes, o * code_size);
-  FAISS_THROW_IF_NOT_FMT(n_put == o * code_size, "put list codes faile, list_no = %zu", list_no);
+  memcpy(&ids_[list_no]->at(offset * idx_t_size), ids, n_entry * idx_t_size);
+  memcpy(&codes_[list_no]->at(offset * code_size), code, n_entry * code_size);
+  put_lists(list_no);
 }
 
 void KVInvertedLists::resize(size_t list_no, size_t new_size) {
   assert(list_no < nlist);
+  get_lists(list_no);
+  ids_[list_no]->resize(new_size * idx_t_size);
+  codes_[list_no]->resize(new_size * code_size);
+}
 
-  size_t o, co;
-  auto o_ids = get_(to_ids_key(list_no), o);
-  FAISS_THROW_IF_NOT_FMT(o_ids != nullptr, "get list ids failed, list_no = %zu", list_no);
-  ScopedData so_ids([this, o_ids] { this->release_(o_ids); });
-  o /= idx_t_size;
-  auto o_codes = get_(to_codes_key(list_no), co);
-  FAISS_THROW_IF_NOT_FMT(o_codes != nullptr, "get list codes failed, list_no = %zu", list_no);
-  ScopedData so_codes([this, o_codes] { this->release_(o_codes); });
+void KVInvertedLists::copy_lists(KVInvertedLists &&lists) {
+  assert(nlist == lists.nlist);
+  assert(code_size == lists.code_size);
+  release_all();
+  ids_ = std::move(lists.ids_);
+  codes_ = std::move(lists.codes_);
+}
+void KVInvertedLists::copy_lists(const KVInvertedLists &lists) {
+  assert(nlist == lists.nlist);
+  assert(code_size == lists.code_size);
+  release_all();
 
-  auto n_ids = new faiss::Index::idx_t[new_size];
-  ScopedData sn_ids([n_ids] { delete[] n_ids; });
-  memcpy(n_ids, o_ids, new_size * idx_t_size);
-  auto n_put = put_(to_ids_key(list_no), n_ids, new_size * idx_t_size);
-  FAISS_THROW_IF_NOT_FMT(n_put == new_size * idx_t_size, "put list ids failed, list_no = %zu", list_no);
+  for (size_t i = 0; i < nlist; i++) {
+    if (lists.ids_[i] != nullptr) ids_[i] = new std::string(*lists.ids_[i]);
+    else ids_[i] = nullptr;
 
-  auto n_codes = new uint8_t[new_size * code_size];
-  ScopedData sn_codes([n_codes] { delete[] n_codes; });
-  memcpy(n_codes, o_codes, new_size * code_size);
-  n_put = put_(to_codes_key(list_no), n_codes, new_size * code_size);
-  FAISS_THROW_IF_NOT_FMT(n_put == new_size * code_size, "put list failed, list_no = %zu", list_no);
+    if (lists.codes_[i] != nullptr) codes_[i] = new std::string(*lists.codes_[i]);
+    else codes_[i] = nullptr;
+  }
+}
+
+void KVInvertedLists::put_lists(size_t list_no) {
+  if (ids_[list_no] == nullptr || codes_[list_no] == nullptr) {
+    FAISS_THROW_FMT("can't put list while list is null, list_no = %zu", list_no);
+  }
+  auto b = put_(to_ids_key(list_no), *ids_[list_no]);
+  FAISS_THROW_IF_NOT_FMT(b, "put list ids faild, list_no = %zu", list_no);
+  b = put_(to_codes_key(list_no), *codes_[list_no]);
+  FAISS_THROW_IF_NOT_FMT(b, "put list codes failed, list_no = %zu", list_no);
+}
+
+void KVInvertedLists::get_lists(size_t list_no) const {
+  auto id = new std::string;
+  auto b = get_(to_ids_key(list_no), *id);
+  FAISS_THROW_IF_NOT_FMT(b, "prefetch list ids failed, list_no = %zu", list_no);
+  auto code = new std::string;
+  b = get_(to_codes_key(list_no), *code);
+  FAISS_THROW_IF_NOT_FMT(b, "prefetch list codes failed, list_no = %zu", list_no);
+
+  //std::lock_guard<std::mutex> lock(mux_);
+  delete ids_[list_no];
+  delete codes_[list_no];
+  ids_[list_no] = id;
+  codes_[list_no] = code;
 }
 
 std::string KVInvertedLists::to_ids_key(size_t list_no) {

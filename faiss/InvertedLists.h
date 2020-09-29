@@ -20,6 +20,7 @@
 #include <faiss/Index.h>
 #include <functional>
 #include <cstring>
+#include <mutex>
 
 namespace faiss {
 
@@ -331,18 +332,12 @@ class KVInvertedLists : public InvertedLists {
     IDS,
     CODES,
   };
-  struct ScopedData {
-    std::function<void()> deconstructor;
-    explicit ScopedData(std::function<void()> f) : deconstructor(std::move(f)) {}
-    ~ScopedData() { deconstructor(); }
-  };
 
  public:
   KVInvertedLists(size_t nlist,
                   size_t code_size,
-                  std::function<size_t(const std::string &key, const void *data, size_t size)> put,
-                  std::function<void *(const std::string &key, size_t &size)> get,
-                  std::function<void(const void *)> release
+                  std::function<bool(const std::string &key, const std::string &value)> put,
+                  std::function<bool(const std::string &key, std::string &value)> get
   );
   ~KVInvertedLists() noexcept override;
   KVInvertedLists(const KVInvertedLists &) = delete;
@@ -353,23 +348,35 @@ class KVInvertedLists : public InvertedLists {
   size_t list_size(size_t list_no) const override;
   const uint8_t *get_codes(size_t list_no) const override;
   const idx_t *get_ids(size_t list_no) const override;
-  void release_codes(size_t list_no, const uint8_t *codes) const override;
-  void release_ids(size_t list_no, const idx_t *ids) const override;
+  void prefetch_lists(const idx_t *list_nos, int nlist) const override;
+
+  void release_all();
 
   size_t add_entries(size_t list_no, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
   void update_entries(size_t list_no, size_t offset, size_t n_entry, const idx_t *ids, const uint8_t *code) override;
   void resize(size_t list_no, size_t new_size) override;
 
  protected:
+  void copy_lists(KVInvertedLists &&lists);
+  void copy_lists(const KVInvertedLists &lists);
+  void put_lists(size_t list_no);
+  void get_lists(size_t list_no) const;
+
+ protected:
   static constexpr auto idx_t_size = sizeof(faiss::Index::idx_t);
-  std::function<size_t(const std::string &key, const void *data, size_t size)> put_;
-  std::function<void *(const std::string &key, size_t &size)> get_;
-  std::function<void(const void *)> release_;
+  std::function<bool(const std::string &key, const std::string &value)> put_;
+  std::function<bool(const std::string &key, std::string &value)> get_;
 
  public:
   static std::string to_ids_key(size_t list_no);
   static std::string to_codes_key(size_t list_no);
   static std::pair<KeyType, size_t> parse_key(const std::string &key);
+
+ protected:
+
+  mutable std::vector<std::string *> ids_;
+  mutable std::vector<std::string *> codes_;
+//  mutable std::mutex mux_;
 };
 
 struct MapInvertedLists : public KVInvertedLists {

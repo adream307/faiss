@@ -14,7 +14,7 @@
 namespace faiss {
 
 MapInvertedLists::MapInvertedLists(size_t nlist, size_t code_size) :
-    KVInvertedLists(nlist, code_size, nullptr, nullptr, nullptr) {
+    KVInvertedLists(nlist, code_size, nullptr, nullptr) {
   for (size_t i = 0; i < nlist; i++) {
     Entry en;
     en.list_no = i;
@@ -24,56 +24,55 @@ MapInvertedLists::MapInvertedLists(size_t nlist, size_t code_size) :
 }
 
 MapInvertedLists::MapInvertedLists(const MapInvertedLists &ivl) :
-    KVInvertedLists(ivl.nlist, ivl.code_size, nullptr, nullptr, nullptr) {
+    KVInvertedLists(ivl.nlist, ivl.code_size, nullptr, nullptr) {
   datas = ivl.datas;
+  copy_lists(ivl);
   InitKV();
 }
 
 MapInvertedLists::MapInvertedLists(MapInvertedLists &&ivl) :
-    KVInvertedLists(ivl.nlist, ivl.code_size, nullptr, nullptr, nullptr) {
+    KVInvertedLists(ivl.nlist, ivl.code_size, nullptr, nullptr) {
   datas = std::move(ivl.datas);
+  copy_lists(std::move(ivl));
   InitKV();
 }
 
 void MapInvertedLists::InitKV() {
-  put_ = [this](const std::string &key, const void *data, size_t size) {
+  put_ = [this](const std::string &key, const std::string &value) {
     auto kt = parse_key(key);
     switch (kt.first) {
       case KVInvertedLists::KeyType::IDS: {
-        datas[kt.second].ids.resize(size / idx_t_size);
-        memcpy(datas[kt.second].ids.data(), data, size);
-        return size;
+        datas[kt.second].ids.resize(value.size() / idx_t_size);
+        memcpy(datas[kt.second].ids.data(), value.data(), value.size());
+        return true;
       }
       case KVInvertedLists::KeyType::CODES: {
-        datas[kt.second].codes.resize(size);
-        memcpy(datas[kt.second].codes.data(), data, size);
-        return size;
+        datas[kt.second].codes.resize(value.size());
+        memcpy(datas[kt.second].codes.data(), value.data(), value.size());
+        return true;
       }
-      default: return size_t(0);
+      default:return false;
     }
   };
 
-  get_ = [this](const std::string &key, size_t &size) {
+  get_ = [this](const std::string &key, std::string &value) {
     auto kt = parse_key(key);
     switch (kt.first) {
       case KVInvertedLists::KeyType::IDS: {
-        size = datas[kt.second].ids.size() * idx_t_size;
-        auto data = malloc(size);
-        memcpy(data, datas[kt.second].ids.data(), size);
-        return data;
+        auto size = datas[kt.second].ids.size() * idx_t_size;
+        value.resize(size);
+        memcpy((void *) value.data(), datas[kt.second].ids.data(), size);
+        return true;
       }
       case KVInvertedLists::KeyType::CODES: {
-        size = datas[kt.second].codes.size();
-        auto data = malloc(size);
-        memcpy(data, datas[kt.second].codes.data(), size);
-        return data;
+        auto size = datas[kt.second].codes.size();
+        value.resize(size);
+        memcpy((void *) value.data(), datas[kt.second].codes.data(), size);
+        return true;
       }
-      default: return (void *) nullptr;
+      default: return false;
     }
   };
-
-  release_ = [](const void *p) { free((void *) p); };
-
 }
 
 //size_t MapInvertedLists::list_size(size_t list_no) const {
